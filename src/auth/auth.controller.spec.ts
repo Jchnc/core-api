@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { Role } from '@/generated/prisma/enums';
@@ -96,14 +96,13 @@ describe('AuthController', () => {
         role: Role.USER,
         tokenId: 'token-1',
       };
-      const req = { cookies: { refresh_token: 'raw-token' } } as unknown as Request;
       const expectedTokens = { access_token: 'new-token' };
 
       mockAuthService.refresh.mockResolvedValue(expectedTokens);
 
-      const result = await controller.refresh(payload, req, mockResponse);
+      const result = await controller.refresh(payload, mockResponse);
 
-      expect(mockAuthService.refresh).toHaveBeenCalledWith(payload, 'raw-token', mockResponse);
+      expect(mockAuthService.refresh).toHaveBeenCalledWith(payload, mockResponse);
       expect(result).toEqual({ data: expectedTokens, message: 'Tokens refreshed' });
     });
   });

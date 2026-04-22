@@ -1,16 +1,6 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Post,
-  Req,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 
 import { seconds, Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -71,11 +61,9 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
   async refresh(
     @CurrentUser() payload: JwtRefreshPayload,
-    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const rawToken = req.cookies?.['refresh_token'] as string;
-    const tokens = await this.authService.refresh(payload, rawToken, res);
+    const tokens = await this.authService.refresh(payload, res);
     return { data: tokens, message: 'Tokens refreshed' };
   }
 

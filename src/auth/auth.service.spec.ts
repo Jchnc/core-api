@@ -7,6 +7,7 @@ import { Response } from 'express';
 
 import { Role } from '@/generated/prisma/enums';
 import { PrismaService } from '@/prisma';
+import { MailService } from '@/mail';
 import { AuthService } from './auth.service';
 
 jest.mock('bcrypt');
@@ -38,6 +39,11 @@ describe('AuthService', () => {
     getOrThrow: jest.fn(),
   };
 
+  const mockMailService = {
+    sendWelcome: jest.fn(),
+    sendPasswordReset: jest.fn(),
+  };
+
   const mockResponse = {
     cookie: jest.fn(),
     clearCookie: jest.fn(),
@@ -52,6 +58,7 @@ describe('AuthService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: JwtService, useValue: mockJwtService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: MailService, useValue: mockMailService },
       ],
     }).compile();
 
@@ -109,6 +116,9 @@ describe('AuthService', () => {
           passwordHash: 'hashedPassword',
         },
         select: { id: true, email: true, name: true, role: true },
+      });
+      expect(mockMailService.sendWelcome).toHaveBeenCalledWith(registerDto.email, {
+        name: registerDto.name,
       });
       expect(result).toEqual({
         id: 'user-1',
@@ -213,7 +223,7 @@ describe('AuthService', () => {
       expect(mockPrismaService.token.deleteMany).not.toHaveBeenCalled();
     });
 
-    it('should generate a reset link and pending state if user is found', async () => {
+    it('should generate a reset link and send email if user is found', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({ id: 'user-1', name: 'Test User' });
       mockPrismaService.token.deleteMany.mockResolvedValue({ count: 0 });
       mockPrismaService.token.create.mockResolvedValue({});
@@ -225,11 +235,11 @@ describe('AuthService', () => {
       });
       expect(mockPrismaService.token.create).toHaveBeenCalled();
 
-      expect(authService['_pendingResetLink']).toBeDefined();
-      expect(authService['_pendingResetLink']?.email).toBe('test@example.com');
-      expect(authService['_pendingResetLink']?.resetLink).toContain(
-        'http://localhost:3000/reset-password?token=',
-      );
+      expect(mockMailService.sendPasswordReset).toHaveBeenCalledWith('test@example.com', {
+        name: 'Test User',
+        resetLink: expect.stringContaining('http://localhost:3000/reset-password?token=') as string,
+        expiresInMinutes: 60,
+      });
     });
   });
 

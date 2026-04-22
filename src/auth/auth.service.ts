@@ -14,6 +14,7 @@ import type { StringValue } from 'ms';
 
 import { Role, TokenType } from '@/generated/prisma/enums';
 import { PrismaService } from '@/prisma';
+import { MailService } from '@/mail';
 import { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto } from './dto';
 import { JwtPayload, JwtRefreshPayload } from './types/jwt-payload.type';
 
@@ -38,10 +39,11 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly mailService: MailService,
   ) {}
 
   /**
-   * Register a new user.
+   * Register a new user and send welcome email.
    * @param dto The user registration data.
    * @returns The registered user.
    * @throws {ConflictException} If the email is already registered.
@@ -65,6 +67,10 @@ export class AuthService {
         passwordHash,
       },
       select: { id: true, email: true, name: true, role: true },
+    });
+
+    await this.mailService.sendWelcome(user.email, {
+      name: user.name,
     });
 
     return user;
@@ -131,7 +137,7 @@ export class AuthService {
    * @returns The tokens.
    * @throws {UnauthorizedException} If the token is invalid or expired.
    */
-  async refresh(payload: JwtRefreshPayload, rawToken: string, res: Response): Promise<AuthTokens> {
+  async refresh(payload: JwtRefreshPayload, res: Response): Promise<AuthTokens> {
     // Mark old token as used (rotation)
     await this.prisma.token.update({
       where: { id: payload.tokenId },
@@ -182,18 +188,12 @@ export class AuthService {
     const frontendUrl = this.configService.get<string>('app.frontendUrl');
     const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
 
-    // Mail is sent by MailService (wired via event or direct call in AuthModule)
-    // Stored in a property so AuthController can access it for the mail step
-    this._pendingResetLink = { userId: user.id, name: user.name, email: dto.email, resetLink };
+    await this.mailService.sendPasswordReset(dto.email, {
+      name: user.name,
+      resetLink,
+      expiresInMinutes: Math.floor(tokenTtl / 60),
+    });
   }
-
-  // Temporary holder used to pass data to MailService in AuthController
-  _pendingResetLink?: {
-    userId: string;
-    name: string;
-    email: string;
-    resetLink: string;
-  };
 
   /**
    * Reset a user's password.
