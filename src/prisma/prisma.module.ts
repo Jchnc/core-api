@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
-import { createAdapter } from '../config';
+import { ConfigService } from '@nestjs/config';
+import { createAdapter } from '@/config';
 import { PrismaService } from './prisma.service';
 
 @Global()
@@ -7,9 +8,12 @@ import { PrismaService } from './prisma.service';
   providers: [
     {
       provide: PrismaService,
-      useFactory: async (): Promise<PrismaService> => {
-        const adapter = await createAdapter();
-        return new PrismaService(adapter);
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService): Promise<PrismaService> => {
+        const databaseUrl = configService.getOrThrow<string>('app.databaseUrl');
+        const nodeEnv = configService.get<string>('app.nodeEnv', 'development');
+        const adapter = await createAdapter(databaseUrl);
+        return new PrismaService(adapter, nodeEnv);
       },
     },
   ],

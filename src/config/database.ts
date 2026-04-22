@@ -42,12 +42,11 @@ async function loadMariaDbAdapter(url: string): Promise<SqlDriverAdapterFactory>
   });
 }
 
-export async function createAdapter(): Promise<SqlDriverAdapterFactory> {
-  const url = process.env.DATABASE_URL!;
-  const provider = detectProvider(url);
+export async function createAdapter(databaseUrl: string): Promise<SqlDriverAdapterFactory> {
+  const provider = detectProvider(databaseUrl);
 
-  if (provider === 'postgres') return loadPgAdapter(url);
-  if (provider === 'mysql') return loadMariaDbAdapter(url);
+  if (provider === 'postgres') return loadPgAdapter(databaseUrl);
+  if (provider === 'mysql') return loadMariaDbAdapter(databaseUrl);
 
   throw new Error('Invalid DB provider');
 }

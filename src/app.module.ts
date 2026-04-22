@@ -4,13 +4,18 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { minutes, seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import 'dotenv/config';
 
-import { AllExceptionsFilter } from './common/filters/http-exception.filter';
-import { TransformInterceptor } from './common/interceptors/transform.interceptor';
-import { appConfig, jwtConfig, mailConfig, validateEnv } from './config';
-import { PrismaModule } from './prisma';
+import { AppController } from '@/app.controller';
+import { AppService } from '@/app.service';
+
+import { AllExceptionsFilter } from '@/common/filters/http-exception.filter';
+import { TransformInterceptor } from '@/common/interceptors/transform.interceptor';
+import { appConfig, jwtConfig, mailConfig, validateEnv } from '@/config';
+import { PrismaModule } from '@/prisma';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
+    AuthModule,
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnv,
@@ -25,10 +30,12 @@ import { PrismaModule } from './prisma';
     }),
     PrismaModule,
   ],
+  controllers: [AppController],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    AppService,
   ],
 })
 export class AppModule {}

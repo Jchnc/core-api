@@ -1,13 +1,13 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import type { SqlDriverAdapterFactory } from '@prisma/driver-adapter-utils';
-import { PrismaClient } from '../generated/prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
-  constructor(adapter: SqlDriverAdapterFactory) {
+  constructor(adapter: SqlDriverAdapterFactory, nodeEnv: string) {
     super({
       adapter,
-      log: process.env.NODE_ENV === 'development' ? ['query', 'warn', 'error'] : ['warn', 'error'],
+      log: nodeEnv === 'development' ? ['query', 'warn', 'error'] : ['warn', 'error'],
     });
   }
 

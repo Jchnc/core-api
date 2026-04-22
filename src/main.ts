@@ -15,9 +15,9 @@ async function bootstrap(): Promise<void> {
   });
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('app.port') ?? 3000;
-  const nodeEnv = configService.get<string>('app.nodeEnv');
-  const frontendUrl = configService.get<string>('app.frontendUrl')!;
+  const port = configService.get<number>('app.port', 3000);
+  const nodeEnv = configService.get<string>('app.nodeEnv', 'development');
+  const frontendUrl = configService.getOrThrow<string>('app.frontendUrl');
 
   // Security headers
   app.use(helmet());
