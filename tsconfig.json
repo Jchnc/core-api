@@ -3,9 +3,7 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "target": "ES2023",
-    "lib": [
-      "ES2023"
-    ],
+    "lib": ["ES2023"],
     "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
@@ -16,21 +14,10 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/*"
-      ],
-      "@test/*": [
-        "test/*"
-      ]
+      "@/*": ["src/*"],
+      "@test/*": ["test/*"]
     }
   },
-  "include": [
-    "src/**/*",
-    "test/**/*",
-    "prisma/seed.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["src/**/*", "test/**/*", "prisma/seed.ts", "commitlint.config.ts"],
+  "exclude": ["node_modules", "dist"]
 }
