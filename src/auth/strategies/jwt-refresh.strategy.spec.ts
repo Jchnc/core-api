@@ -113,7 +113,7 @@ describe('JwtRefreshStrategy', () => {
     it('should throw UnauthorizedException and revoke all tokens if token is reused', async () => {
       const mockToken = {
         id: 'token-1',
-        usedAt: new Date(), // reused
+        usedAt: new Date(Date.now() - 35000), // 35 seconds ago, outside the 30s grace period
         expiresAt: new Date(Date.now() + 10000),
         user: { id: 'user-1', isActive: true },
       };
