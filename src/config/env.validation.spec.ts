@@ -17,6 +17,9 @@ describe('Environment Validation', () => {
     MAIL_PASS: 'pass',
     MAIL_FROM: 'noreply@example.com',
     FRONTEND_URL: 'http://localhost:3000',
+    GOOGLE_CLIENT_ID: 'google-client-id',
+    GOOGLE_CLIENT_SECRET: 'google-client-secret',
+    GOOGLE_CALLBACK_URL: 'http://localhost:3000/api/v1/auth/google/callback',
   };
 
   it('should validate and return parsed configuration when valid', () => {
