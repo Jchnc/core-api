@@ -10,6 +10,7 @@ import { RolesGuard } from './guards/roles.guard';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { MailModule } from '@/mail';
+import { GoogleStrategy } from './strategies/google.strategy';
 
 @Module({
   imports: [PassportModule, JwtModule.register({}), MailModule],
@@ -18,6 +19,7 @@ import { MailModule } from '@/mail';
     AuthService,
     JwtAccessStrategy,
     JwtRefreshStrategy,
+    GoogleStrategy,
     // Apply JWT guard globally — use @Public() to opt out
     { provide: APP_GUARD, useClass: JwtAccessGuard },
     { provide: APP_GUARD, useClass: RolesGuard },

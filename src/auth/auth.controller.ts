@@ -10,6 +10,9 @@ import { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto } from './dt
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { JwtRefreshPayload, JwtRefreshPayloadWithUser } from './types/jwt-payload.type';
 
+import { GoogleGuard } from './guards/google.guard';
+import type { OAuthUserPayload } from './types/google-profile.type';
+
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
@@ -123,5 +126,33 @@ export class AuthController {
       payload.user,
     );
     return { data: result };
+  }
+
+  // GET /api/v1/auth/google
+  @Public()
+  @UseGuards(GoogleGuard)
+  @Get('google')
+  @ApiOperation({ summary: 'Initiate Google OAuth flow' })
+  googleLogin(): void {
+    // Guard redirects to Google — no body needed
+  }
+
+  // GET /api/v1/auth/google/callback
+  @Public()
+  @UseGuards(GoogleGuard)
+  @Get('google/callback')
+  @ApiOperation({ summary: 'Google OAuth callback' })
+  async googleCallback(
+    @CurrentUser() oauthPayload: OAuthUserPayload,
+    @Res() res: Response,
+  ): Promise<void> {
+    const result = await this.authService.loginWithOAuth(oauthPayload, res);
+
+    const frontendUrl = this.authService.getFrontendUrl();
+    const params = new URLSearchParams({
+      access_token: result.access_token,
+    });
+
+    res.redirect(`${frontendUrl}/api/auth/oauth/callback?${params.toString()}`);
   }
 }
