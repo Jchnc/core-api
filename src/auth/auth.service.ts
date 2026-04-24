@@ -365,14 +365,14 @@ export class AuthService {
       httpOnly: true,
       secure: isProd,
       sameSite: 'strict',
-      path: '/api/v1/auth/refresh',
+      path: '/',
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in ms
     });
   }
 
   private clearRefreshCookie(res: Response): void {
     res.clearCookie(REFRESH_COOKIE_NAME, {
-      path: '/api/v1/auth/refresh',
+      path: '/',
     });
   }
 

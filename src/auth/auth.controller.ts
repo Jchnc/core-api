@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Post, Res, UseGuards } fro
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 
-import { seconds, Throttle } from '@nestjs/throttler';
+import { seconds, Throttle, SkipThrottle } from '@nestjs/throttler';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
@@ -54,6 +54,7 @@ export class AuthController {
   // POST /api/v1/auth/refresh
   @Public()
   @UseGuards(JwtRefreshGuard)
+  @SkipThrottle({ short: true, medium: true, long: true })
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Rotate refresh token and get new access token' })
@@ -108,6 +109,7 @@ export class AuthController {
   // POST /api/v1/auth/session
   @Public()
   @UseGuards(JwtRefreshGuard)
+  @SkipThrottle({ short: true, medium: true, long: true })
   @Post('session')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify session and get fresh access token (no token rotation)' })

@@ -55,11 +55,16 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     }
 
     if (token.usedAt !== null) {
-      // Token reuse detected — possible theft; revoke all tokens for this user
-      await this.prisma.token.deleteMany({
-        where: { userId: payload.sub },
-      });
-      throw new UnauthorizedException('Refresh token reuse detected. All sessions revoked.');
+      const gracePeriodMs = 30 * 1000; // 30 seconds
+      const isWithinGracePeriod = Date.now() - token.usedAt.getTime() < gracePeriodMs;
+
+      if (!isWithinGracePeriod) {
+        // Token reuse detected — possible theft; revoke all tokens for this user
+        await this.prisma.token.deleteMany({
+          where: { userId: payload.sub },
+        });
+        throw new UnauthorizedException('Refresh token reuse detected. All sessions revoked.');
+      }
     }
 
     if (token.expiresAt < new Date()) {
