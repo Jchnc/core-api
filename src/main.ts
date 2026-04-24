@@ -7,12 +7,15 @@ import 'dotenv/config';
 import helmet from 'helmet';
 
 import { AppModule } from './app.module';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, {
     logger:
       process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['error', 'warn', 'log', 'debug'],
   });
+
+  app.useGlobalInterceptors(new LoggingInterceptor());
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('app.port', 3000);
