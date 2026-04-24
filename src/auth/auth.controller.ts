@@ -8,7 +8,7 @@ import { Public } from '../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto } from './dto';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
-import { JwtRefreshPayload } from './types/jwt-payload.type';
+import { JwtRefreshPayload, JwtRefreshPayloadWithUser } from './types/jwt-payload.type';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -103,5 +103,23 @@ export class AuthController {
   async me(@CurrentUser() user: JwtRefreshPayload) {
     const currentUser = await this.authService.getCurrentUser(user.sub);
     return { data: currentUser };
+  }
+
+  // POST /api/v1/auth/session
+  @Public()
+  @UseGuards(JwtRefreshGuard)
+  @Post('session')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify session and get fresh access token (no token rotation)' })
+  @ApiResponse({ status: 200, description: 'Session verified' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
+  session(@CurrentUser() payload: JwtRefreshPayloadWithUser) {
+    const result = this.authService.verifySession(
+      payload.sub,
+      payload.email,
+      payload.role,
+      payload.user,
+    );
+    return { data: result };
   }
 }

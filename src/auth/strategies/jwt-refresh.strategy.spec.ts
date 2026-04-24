@@ -68,12 +68,30 @@ describe('JwtRefreshStrategy', () => {
         where: { token: payload.tokenId },
         select: {
           id: true,
-          usedAt: true,
           expiresAt: true,
-          user: { select: { id: true, isActive: true } },
+          usedAt: true,
+          user: {
+            select: {
+              id: true,
+              isActive: true,
+              createdAt: true,
+              email: true,
+              isEmailVerified: true,
+              name: true,
+              role: true,
+              updatedAt: true,
+            },
+          },
         },
       });
-      expect(result).toEqual({ ...payload, tokenId: 'token-1' });
+      expect(result).toEqual({
+        ...payload,
+        tokenId: 'token-1',
+        user: {
+          id: 'user-1',
+          isActive: true,
+        },
+      });
     });
 
     it('should throw UnauthorizedException if raw token is missing', async () => {

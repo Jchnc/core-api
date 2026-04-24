@@ -5,6 +5,8 @@
     "dist",
     "test",
     "**/*.spec.ts",
-    "**/*.e2e-spec.ts"
+    "**/*.e2e-spec.ts",
+    "commitlint.config.ts",
+    "prisma/seed.ts"
   ]
-}
+}

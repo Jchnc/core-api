@@ -4,7 +4,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '@/prisma';
-import { JwtRefreshPayload } from '@/auth/types/jwt-payload.type';
+import { JwtRefreshPayload, JwtRefreshPayloadWithUser } from '@/auth/types/jwt-payload.type';
 
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
@@ -22,7 +22,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     });
   }
 
-  async validate(req: Request, payload: JwtRefreshPayload): Promise<JwtRefreshPayload> {
+  async validate(req: Request, payload: JwtRefreshPayload): Promise<JwtRefreshPayloadWithUser> {
     const rawToken = req.cookies?.['refresh_token'] as string | undefined;
 
     if (!rawToken) {
@@ -35,7 +35,18 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
         id: true,
         usedAt: true,
         expiresAt: true,
-        user: { select: { id: true, isActive: true } },
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            isActive: true,
+            isEmailVerified: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
       },
     });
 
@@ -59,6 +70,6 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
       throw new UnauthorizedException('User is inactive');
     }
 
-    return { ...payload, tokenId: token.id };
+    return { ...payload, tokenId: token.id, user: token.user };
   }
 }

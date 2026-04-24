@@ -31,6 +31,10 @@ export interface AuthUser {
   email: string;
   name: string;
   role: string;
+  isActive?: boolean;
+  isEmailVerified?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 @Injectable()
@@ -69,7 +73,8 @@ export class AuthService {
       select: { id: true, email: true, name: true, role: true },
     });
 
-    await this.mailService.sendWelcome(user.email, {
+    // Fire-and-forget: welcome email failure must not block registration
+    void this.mailService.sendWelcome(user.email, {
       name: user.name,
     });
 
@@ -93,6 +98,9 @@ export class AuthService {
         role: true,
         passwordHash: true,
         isActive: true,
+        isEmailVerified: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
 
@@ -116,7 +124,16 @@ export class AuthService {
 
     return {
       ...tokens,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        isActive: user.isActive,
+        isEmailVerified: user.isEmailVerified,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
     };
   }
 
@@ -262,6 +279,25 @@ export class AuthService {
     if (!user) throw new NotFoundException('User not found');
 
     return user;
+  }
+
+  verifySession(
+    userId: string,
+    email: string,
+    role: Role,
+    user: AuthUser,
+  ): AuthTokens & { user: AuthUser } {
+    const accessPayload: JwtPayload = { sub: userId, email, role };
+
+    const accessToken = this.jwtService.sign(accessPayload, {
+      secret: this.configService.getOrThrow<string>('jwt.accessSecret'),
+      expiresIn: this.configService.get<string>('jwt.accessExpiresIn', '15m') as StringValue,
+    });
+
+    return {
+      access_token: accessToken,
+      user,
+    };
   }
 
   /**

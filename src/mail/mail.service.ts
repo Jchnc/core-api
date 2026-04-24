@@ -42,7 +42,6 @@ export class MailService {
       });
     } catch (error) {
       this.logger.error(`Failed to send welcome email to ${to}`, error);
-      throw error;
     }
   }
 }
