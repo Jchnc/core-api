@@ -9,7 +9,7 @@ import { AppService } from '@/app.service';
 
 import { AllExceptionsFilter } from '@/common/filters/http-exception.filter';
 import { TransformInterceptor } from '@/common/interceptors/transform.interceptor';
-import { appConfig, jwtConfig, mailConfig, validateEnv } from '@/config';
+import { appConfig, jwtConfig, mailConfig, securityConfig, validateEnv } from '@/config';
 import { PrismaModule } from '@/prisma';
 import { AuthModule } from '@/auth';
 import { UsersModule } from '@/users';
@@ -20,7 +20,7 @@ import { UsersModule } from '@/users';
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnv,
-      load: [appConfig, jwtConfig, mailConfig],
+      load: [appConfig, jwtConfig, mailConfig, securityConfig],
     }),
     ThrottlerModule.forRoot({
       throttlers: [
