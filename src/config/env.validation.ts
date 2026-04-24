@@ -52,6 +52,15 @@ class EnvironmentVariables {
 
   @IsUrl({ require_tld: false })
   FRONTEND_URL!: string;
+
+  @IsString()
+  GOOGLE_CLIENT_ID!: string;
+
+  @IsString()
+  GOOGLE_CLIENT_SECRET!: string;
+
+  @IsUrl({ require_tld: false })
+  GOOGLE_CALLBACK_URL!: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

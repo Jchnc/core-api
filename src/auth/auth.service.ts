@@ -17,6 +17,7 @@ import { PrismaService } from '@/prisma';
 import { MailService } from '@/mail';
 import { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto } from './dto';
 import { JwtPayload, JwtRefreshPayload } from './types/jwt-payload.type';
+import { OAuthUserPayload } from './types/google-profile.type';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -114,7 +115,7 @@ export class AuthService {
       throw new UnauthorizedException('Account is disabled');
     }
 
-    const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
+    const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash ?? '');
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
@@ -298,6 +299,91 @@ export class AuthService {
       access_token: accessToken,
       user,
     };
+  }
+
+  /**
+   * Logs in or creates a user based on OAuth provider data.
+   * @param payload - The OAuth user profile payload.
+   * @param res - The response object to set cookies.
+   * @returns An object containing the access token, refresh token, and user profile.
+   * @throws {UnauthorizedException} If the account is disabled.
+   */
+  async loginWithOAuth(
+    payload: OAuthUserPayload,
+    res: Response,
+  ): Promise<AuthTokens & { user: AuthUser }> {
+    let user = await this.prisma.user.findUnique({
+      where: { email: payload.email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        oauthAccounts: {
+          where: {
+            provider: payload.provider,
+            providerId: payload.providerId,
+          },
+          select: { id: true },
+        },
+      },
+    });
+
+    if (user) {
+      if (!user.isActive) {
+        throw new UnauthorizedException('Account is disabled');
+      }
+
+      // Link OAuth account if not already linked
+      if (user.oauthAccounts.length === 0) {
+        await this.prisma.oAuthAccount.create({
+          data: {
+            provider: payload.provider,
+            providerId: payload.providerId,
+            userId: user.id,
+          },
+        });
+      }
+    } else {
+      // First time: create user + OAuth account
+      user = await this.prisma.user.create({
+        data: {
+          email: payload.email,
+          name: payload.name,
+          isEmailVerified: payload.isEmailVerified,
+          oauthAccounts: {
+            create: {
+              provider: payload.provider,
+              providerId: payload.providerId,
+            },
+          },
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          isActive: true,
+          oauthAccounts: { select: { id: true } },
+        },
+      });
+    }
+
+    const tokens = await this.issueTokenPair(user.id, user.email, user.role, res);
+
+    return {
+      ...tokens,
+      user: { id: user.id, email: user.email, name: user.name, role: user.role },
+    };
+  }
+
+  /**
+   * Get frontend URL.
+   * @returns The frontend URL.
+   */
+  getFrontendUrl(): string {
+    return this.configService.get<string>('app.frontendUrl') ?? 'http://localhost:3001';
   }
 
   /**
