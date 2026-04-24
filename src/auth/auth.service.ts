@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
+import * as argon2 from 'argon2';
 import { randomUUID } from 'crypto';
 import { Response } from 'express';
 import type { StringValue } from 'ms';
@@ -18,9 +18,6 @@ import { MailService } from '@/mail';
 import { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto } from './dto';
 import { JwtPayload, JwtRefreshPayload } from './types/jwt-payload.type';
 import { OAuthUserPayload } from './types/google-profile.type';
-
-const BCRYPT_ROUNDS = 12;
-
 const REFRESH_COOKIE_NAME = 'refresh_token';
 
 export interface AuthTokens {
@@ -47,6 +44,15 @@ export class AuthService {
     private readonly mailService: MailService,
   ) {}
 
+  private get argon2Options(): argon2.Options {
+    return {
+      type: argon2.argon2id,
+      memoryCost: this.configService.get<number>('security.argon2.memoryCost', 65536),
+      timeCost: this.configService.get<number>('security.argon2.timeCost', 3),
+      parallelism: this.configService.get<number>('security.argon2.parallelism', 4),
+    };
+  }
+
   /**
    * Register a new user and send welcome email.
    * @param dto The user registration data.
@@ -63,7 +69,7 @@ export class AuthService {
       throw new ConflictException('Email already registered');
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+    const passwordHash = await argon2.hash(dto.password, this.argon2Options);
 
     const user = await this.prisma.user.create({
       data: {
@@ -107,7 +113,7 @@ export class AuthService {
 
     if (!user) {
       // Constant-time response to prevent user enumeration
-      await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+      await argon2.hash(dto.password, this.argon2Options);
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -115,7 +121,8 @@ export class AuthService {
       throw new UnauthorizedException('Account is disabled');
     }
 
-    const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash ?? '');
+    const isPasswordValid =
+      user.passwordHash ? await argon2.verify(user.passwordHash, dto.password) : false;
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
@@ -243,7 +250,7 @@ export class AuthService {
       throw new BadRequestException('Reset token has expired');
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+    const passwordHash = await argon2.hash(dto.password, this.argon2Options);
 
     await this.prisma.$transaction([
       this.prisma.user.update({

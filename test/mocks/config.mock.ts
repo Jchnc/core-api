@@ -1,6 +1,6 @@
 export function buildConfigServiceMock() {
   return {
-    get: jest.fn((key: string) => {
+    get: jest.fn((key: string, defaultValue?: unknown) => {
       const map: Record<string, string | number> = {
         'jwt.accessSecret': 'test-access-secret',
         'jwt.accessExpiresIn': '15m',
@@ -10,7 +10,7 @@ export function buildConfigServiceMock() {
         'app.frontendUrl': 'http://localhost:3001',
         'app.passwordResetTokenTtl': 3600,
       };
-      return map[key];
+      return map[key] !== undefined ? map[key] : defaultValue;
     }),
     getOrThrow: jest.fn((key: string) => {
       const map: Record<string, string | number> = {

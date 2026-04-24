@@ -18,7 +18,7 @@ Solid foundation for scalable server-side applications, enforcing clean code, te
 
 ### ✨ Current Features
 
-- **Advanced Authentication:** Complete auth lifecycle featuring JWT, secure HTTP-only cookies, and robust password hashing (`bcrypt`).
+- **Advanced Authentication:** Complete auth lifecycle featuring JWT, secure HTTP-only cookies, and robust password hashing (`argon2`).
 - **Mailing Service:** Integrated email support using `Nodemailer` and `Handlebars` templates (e.g., Welcome Emails, Forgot/Reset Password flows).
 - **Database Integration:** Scalable `Prisma ORM` setup natively adapted for relational databases with robust migration management.
 - **Security & Protection:** Built-in defenses with `Helmet`, Rate Limiting (`Throttler`), and strict DTO validation (`class-validator`).

@@ -1,9 +1,9 @@
 import { ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import * as bcrypt from 'bcrypt';
+import * as argon2 from 'argon2';
 import { Response } from 'express';
 
-jest.mock('bcrypt');
+jest.mock('argon2');
 
 import { AuthService } from './auth.service';
 import { PrismaService } from '@/prisma';
@@ -90,7 +90,7 @@ describe('AuthService', () => {
         password: 'P@ssw0rd!',
       });
 
-      expect(bcrypt.hash).toHaveBeenCalledWith('P@ssw0rd!', 12);
+      expect(argon2.hash).toHaveBeenCalledWith('P@ssw0rd!', expect.any(Object));
     });
   });
 
@@ -116,7 +116,7 @@ describe('AuthService', () => {
     it('throws UnauthorizedException for wrong password', async () => {
       const user = buildUser({ passwordHash: 'hashed-password' });
       prisma.user.findUnique.mockResolvedValue(user);
-      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+      (argon2.verify as jest.Mock).mockResolvedValue(false);
       const res = mockResponse() as Response;
 
       await expect(
@@ -129,7 +129,7 @@ describe('AuthService', () => {
       const user = buildUser({ passwordHash: 'hashed-password' });
       prisma.user.findUnique.mockResolvedValue(user);
       prisma.token.create.mockResolvedValue({});
-      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      (argon2.verify as jest.Mock).mockResolvedValue(true);
       const res = mockResponse() as Response;
 
       const result = await service.login({ email: user.email, password }, res);

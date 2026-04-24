@@ -61,6 +61,15 @@ class EnvironmentVariables {
 
   @IsUrl({ require_tld: false })
   GOOGLE_CALLBACK_URL!: string;
+
+  @IsNumber()
+  ARGON2_MEMORY_COST: number = 65536;
+
+  @IsNumber()
+  ARGON2_TIME_COST: number = 3;
+
+  @IsNumber()
+  ARGON2_PARALLELISM: number = 4;
 }
 
 export function validateEnv(config: Record<string, unknown>) {
