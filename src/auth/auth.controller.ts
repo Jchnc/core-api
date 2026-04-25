@@ -1,17 +1,29 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 
-import { seconds, Throttle, SkipThrottle } from '@nestjs/throttler';
+import { seconds, SkipThrottle, Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto } from './dto';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
-import { JwtRefreshPayload, JwtRefreshPayloadWithUser } from './types/jwt-payload.type';
+import { JwtPayload, JwtRefreshPayload, JwtRefreshPayloadWithUser } from './types/jwt-payload.type';
 
 import { GoogleGuard } from './guards/google.guard';
 import type { OAuthUserPayload } from './types/google-profile.type';
+
+import { ConfirmPasswordDto, VerifyTwoFactorDto } from './dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -39,8 +51,12 @@ export class AuthController {
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    const result = await this.authService.login(dto, res);
+  async login(
+    @Body() dto: LoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.login(dto, req, res);
     return { data: result, message: 'Login successful' };
   }
 
@@ -144,15 +160,68 @@ export class AuthController {
   @ApiOperation({ summary: 'Google OAuth callback' })
   async googleCallback(
     @CurrentUser() oauthPayload: OAuthUserPayload,
+    @Req() req: Request,
     @Res() res: Response,
   ): Promise<void> {
-    const result = await this.authService.loginWithOAuth(oauthPayload, res);
-
+    const result = await this.authService.loginWithOAuth(oauthPayload, req, res);
     const frontendUrl = this.authService.getFrontendUrl();
-    const params = new URLSearchParams({
-      access_token: result.access_token,
-    });
 
+    if ('requires_2fa' in result) {
+      const params = new URLSearchParams({
+        two_factor_token: result.two_factor_token,
+      });
+      res.redirect(`${frontendUrl}/2fa/verify?${params.toString()}`);
+      return;
+    }
+
+    const params = new URLSearchParams({ access_token: result.access_token });
     res.redirect(`${frontendUrl}/api/auth/oauth/callback?${params.toString()}`);
+  }
+
+  // POST /api/v1/auth/2fa/verify
+  @Public()
+  @Post('2fa/verify')
+  @Throttle({ short: { ttl: seconds(60), limit: 10 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify 2FA code and complete login' })
+  async verifyTwoFactor(
+    @Body() dto: VerifyTwoFactorDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.completeTwoFactor(
+      dto.two_factor_token,
+      dto.code,
+      dto.trust_device ?? false,
+      req,
+      res,
+    );
+    return { data: result, message: 'Login successful' };
+  }
+
+  // POST /api/v1/auth/2fa/enable
+  @Post('2fa/enable')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Enable 2FA for current user (requires password confirmation)' })
+  async enableTwoFactor(@CurrentUser() user: JwtPayload, @Body() dto: ConfirmPasswordDto) {
+    await this.authService.enableTwoFactor(user.sub, dto.password);
+    return { data: null, message: 'Two-factor authentication enabled' };
+  }
+
+  // POST /api/v1/auth/2fa/disable
+  @Post('2fa/disable')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Disable 2FA and revoke trusted devices (requires password confirmation)',
+  })
+  async disableTwoFactor(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: ConfirmPasswordDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.authService.disableTwoFactor(user.sub, dto.password, res);
+    return { data: null, message: 'Two-factor authentication disabled' };
   }
 }

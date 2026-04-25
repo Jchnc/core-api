@@ -6,6 +6,7 @@ import { Response } from 'express';
 jest.mock('argon2');
 
 import { AuthService } from './auth.service';
+import { TwoFactorService } from './two-factor.service';
 import { PrismaService } from '@/prisma';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -23,6 +24,16 @@ const mockResponse = (): Partial<Response> => ({
   clearCookie: jest.fn(),
 });
 
+const mockRequest = () => ({ cookies: {} }) as unknown as import('express').Request;
+
+const mockTwoFactorService = {
+  initiate: jest.fn(),
+  verify: jest.fn(),
+  isTrustedDevice: jest.fn().mockResolvedValue(false),
+  setTrustedDevice: jest.fn(),
+  revokeTrustedDevices: jest.fn(),
+};
+
 describe('AuthService', () => {
   let service: AuthService;
   let prisma: PrismaMock;
@@ -37,6 +48,7 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: buildJwtServiceMock() },
         { provide: ConfigService, useValue: buildConfigServiceMock() },
         { provide: MailService, useValue: buildMailServiceMock() },
+        { provide: TwoFactorService, useValue: mockTwoFactorService },
       ],
     }).compile();
 
@@ -97,19 +109,21 @@ describe('AuthService', () => {
   describe('login', () => {
     it('throws UnauthorizedException for unknown email', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
+      const req = mockRequest();
       const res = mockResponse() as Response;
 
       await expect(
-        service.login({ email: 'ghost@example.com', password: 'P@ssw0rd!' }, res),
+        service.login({ email: 'ghost@example.com', password: 'P@ssw0rd!' }, req, res),
       ).rejects.toThrow(UnauthorizedException);
     });
 
     it('throws UnauthorizedException for inactive user', async () => {
       prisma.user.findUnique.mockResolvedValue(buildUser({ isActive: false }));
+      const req = mockRequest();
       const res = mockResponse() as Response;
 
       await expect(
-        service.login({ email: 'test@example.com', password: 'P@ssw0rd!' }, res),
+        service.login({ email: 'test@example.com', password: 'P@ssw0rd!' }, req, res),
       ).rejects.toThrow(UnauthorizedException);
     });
 
@@ -117,10 +131,11 @@ describe('AuthService', () => {
       const user = buildUser({ passwordHash: 'hashed-password' });
       prisma.user.findUnique.mockResolvedValue(user);
       (argon2.verify as jest.Mock).mockResolvedValue(false);
+      const req = mockRequest();
       const res = mockResponse() as Response;
 
       await expect(
-        service.login({ email: user.email, password: 'wrong-password' }, res),
+        service.login({ email: user.email, password: 'wrong-password' }, req, res),
       ).rejects.toThrow(UnauthorizedException);
     });
 
@@ -130,13 +145,15 @@ describe('AuthService', () => {
       prisma.user.findUnique.mockResolvedValue(user);
       prisma.token.create.mockResolvedValue({});
       (argon2.verify as jest.Mock).mockResolvedValue(true);
+      const req = mockRequest();
       const res = mockResponse() as Response;
 
-      const result = await service.login({ email: user.email, password }, res);
+      const result = await service.login({ email: user.email, password }, req, res);
 
       expect(result).toHaveProperty('access_token');
-      expect(result).toHaveProperty('user');
-      expect(result.user).not.toHaveProperty('passwordHash');
+      if ('user' in result) {
+        expect(result.user).not.toHaveProperty('passwordHash');
+      }
       expect(res.cookie).toHaveBeenCalledWith(
         'refresh_token',
         expect.any(String),

@@ -1,6 +1,6 @@
 import { MailerService } from '@nestjs-modules/mailer';
 import { Injectable, Logger } from '@nestjs/common';
-import { ResetPasswordContext, WelcomeContext } from './mail.types';
+import { ResetPasswordContext, WelcomeContext, TwoFactorCodeContext } from './mail.types';
 
 @Injectable()
 export class MailService {
@@ -42,6 +42,25 @@ export class MailService {
       });
     } catch (error) {
       this.logger.error(`Failed to send welcome email to ${to}`, error);
+    }
+  }
+
+  /**
+   * Send a 2FA code to the user
+   * @param to User email address
+   * @param context 2FA code context
+   */
+  async sendTwoFactorCode(to: string, context: TwoFactorCodeContext): Promise<void> {
+    try {
+      await this.mailerService.sendMail({
+        to,
+        subject: 'Your verification code',
+        template: 'two-factor-code',
+        context,
+      });
+    } catch (error) {
+      this.logger.error(`Failed to send 2FA code to ${to}`, error);
+      throw error;
     }
   }
 }

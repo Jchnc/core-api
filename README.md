@@ -31,14 +31,18 @@ Solid, production-ready foundation for scalable server-side applications. It str
 ### 🔐 Advanced Authentication & Authorization
 
 - **Complete Auth Lifecycle:** Registration, Login, Logout, and Token Refresh logic out-of-the-box.
+- **Two-Factor Authentication (2FA):** Email-based OTP system with robust session handling, rate-limiting, and timed expirations.
+- **Trusted Devices:** Secure, cryptographically-hashed cookie tracking to bypass 2FA on recognized user devices.
 - **Social Login:** Native integration with **Google OAuth2** using Passport strategies.
-- **Secure Sessions:** JWT rotation strategy, `httpOnly` secure cookies for refresh tokens to mitigate XSS.
+- **Secure Sessions:** JWT rotation strategy, `httpOnly` secure cookies for refresh tokens and trusted devices to mitigate XSS.
 - **Password Security:** Salted and hashed passwords using `argon2` to prevent brute-force attacks.
+- **Sensitive Operations Protection:** Mandatory password confirmation required before enabling or disabling critical security features (like 2FA).
 - **Role-Based Access Control (RBAC):** Customizable `@Roles()` and `@CurrentUser()` decorators mapping to admin/user privileges.
 
 ### 🛡 Security & Protection
 
-- **Rate Limiting:** Built-in defenses with `@nestjs/throttler` to prevent DDOS and brute-force endpoints.
+- **Rate Limiting:** Built-in defenses with `@nestjs/throttler` to prevent DDOS, plus targeted rate limiting and max attempts on 2FA endpoints.
+- **Race Condition Prevention:** Mitigated TOCTOU (Time-of-Check to Time-of-Use) vulnerabilities during session and token validation.
 - **Data Validation:** Strict DTO schema validation and payload transformation using `class-validator` and `class-transformer`.
 - **HTTP Hardening:** Cross-Site Request Forgery and malicious header protections via `Helmet`.
 - **CORS Setup:** Configurable Cross-Origin Resource Sharing bound to authorized frontend URLs.
@@ -125,6 +129,9 @@ Configure your local `.env` file. The following variables are **mandatory** for 
 - `ARGON2_MEMORY_COST`: Memory usage for hashing (default: `65536`).
 - `ARGON2_TIME_COST`: Iterations for hashing (default: `3`).
 - `ARGON2_PARALLELISM`: Degree of parallelism (default: `4`).
+- `TWO_FACTOR_CODE_TTL`: Time-to-live for 2FA verification codes in seconds (default: `600`).
+- `TWO_FACTOR_MAX_ATTEMPTS`: Maximum failed attempts before invalidating a 2FA session (default: `5`).
+- `TRUSTED_DEVICE_TTL_DAYS`: Number of days a device remains trusted without re-verifying 2FA (default: `30`).
 
 #### 3. Third-Party Integrations
 

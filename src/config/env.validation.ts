@@ -70,6 +70,18 @@ class EnvironmentVariables {
 
   @IsNumber()
   ARGON2_PARALLELISM: number = 4;
+
+  @IsNumber()
+  @Min(60)
+  TWO_FACTOR_CODE_TTL: number = 600;
+
+  @IsNumber()
+  @Min(1)
+  TWO_FACTOR_MAX_ATTEMPTS: number = 5;
+
+  @IsNumber()
+  @Min(1)
+  TRUSTED_DEVICE_TTL_DAYS: number = 30;
 }
 
 export function validateEnv(config: Record<string, unknown>) {
