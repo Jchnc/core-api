@@ -16,9 +16,13 @@
   <img src="https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?style=for-the-badge&logo=github-actions" alt="GitHub Actions" />
 </p>
 
+## 🚀 Compatibility
+
+This backend project is fully compatible and designed to work seamlessly with the backend project [core-web](https://github.com/Jchnc/core-web).
+
 ## 📌 Overview
 
-This project provides a solid, production-ready foundation for scalable server-side applications. It strictly adheres to SOLID principles, enforces clean code through aggressive linting, provides robust continuous integration workflows, and implements top-tier security standards by default.
+Solid, production-ready foundation for scalable server-side applications. It strictly adheres to SOLID principles, enforces clean code through aggressive linting, provides robust continuous integration workflows, and implements top-tier security standards by default.
 
 ---
 
