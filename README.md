@@ -18,7 +18,7 @@
 
 ## 🚀 Compatibility
 
-This backend project is fully compatible and designed to work seamlessly with the backend project [core-web](https://github.com/Jchnc/core-web).
+This backend project is fully compatible and designed to work seamlessly with the frontend project [core-web](https://github.com/Jchnc/core-web).
 
 ## 📌 Overview
 
