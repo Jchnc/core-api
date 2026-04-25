@@ -9,15 +9,18 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { randomUUID } from 'crypto';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import type { StringValue } from 'ms';
 
 import { Role, TokenType } from '@/generated/prisma/enums';
-import { PrismaService } from '@/prisma';
 import { MailService } from '@/mail';
+import { PrismaService } from '@/prisma';
 import { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto } from './dto';
-import { JwtPayload, JwtRefreshPayload } from './types/jwt-payload.type';
+import { TwoFactorService } from './two-factor.service';
 import { OAuthUserPayload } from './types/google-profile.type';
+import { JwtPayload, JwtRefreshPayload } from './types/jwt-payload.type';
+import type { TwoFactorRequiredResponse } from './types/two-factor.types';
+
 const REFRESH_COOKIE_NAME = 'refresh_token';
 
 export interface AuthTokens {
@@ -42,6 +45,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
+    private readonly twoFactorService: TwoFactorService,
   ) {}
 
   private get argon2Options(): argon2.Options {
@@ -95,7 +99,11 @@ export class AuthService {
    * @returns The tokens and user data.
    * @throws {UnauthorizedException} If the credentials are invalid or the account is disabled.
    */
-  async login(dto: LoginDto, res: Response): Promise<AuthTokens & { user: AuthUser }> {
+  async login(
+    dto: LoginDto,
+    req: Request,
+    res: Response,
+  ): Promise<(AuthTokens & { user: AuthUser }) | TwoFactorRequiredResponse> {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
       select: {
@@ -108,6 +116,7 @@ export class AuthService {
         isEmailVerified: true,
         createdAt: true,
         updatedAt: true,
+        isTwoFactorEnabled: true,
       },
     });
 
@@ -126,6 +135,14 @@ export class AuthService {
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.isTwoFactorEnabled) {
+      const isTrusted = await this.twoFactorService.isTrustedDevice(user.id, req);
+
+      if (!isTrusted) {
+        return this.twoFactorService.initiate(user.id, user.email, user.name);
+      }
     }
 
     const tokens = await this.issueTokenPair(user.id, user.email, user.role, res);
@@ -317,8 +334,9 @@ export class AuthService {
    */
   async loginWithOAuth(
     payload: OAuthUserPayload,
+    req: Request,
     res: Response,
-  ): Promise<AuthTokens & { user: AuthUser }> {
+  ): Promise<(AuthTokens & { user: AuthUser }) | TwoFactorRequiredResponse> {
     let user = await this.prisma.user.findUnique({
       where: { email: payload.email },
       select: {
@@ -327,6 +345,7 @@ export class AuthService {
         name: true,
         role: true,
         isActive: true,
+        isTwoFactorEnabled: true,
         oauthAccounts: {
           where: {
             provider: payload.provider,
@@ -372,9 +391,18 @@ export class AuthService {
           name: true,
           role: true,
           isActive: true,
+          isTwoFactorEnabled: true,
           oauthAccounts: { select: { id: true } },
         },
       });
+    }
+
+    if (user.isTwoFactorEnabled) {
+      const isTrusted = await this.twoFactorService.isTrustedDevice(user.id, req);
+
+      if (!isTrusted) {
+        return this.twoFactorService.initiate(user.id, user.email, user.name);
+      }
     }
 
     const tokens = await this.issueTokenPair(user.id, user.email, user.role, res);
@@ -383,6 +411,71 @@ export class AuthService {
       ...tokens,
       user: { id: user.id, email: user.email, name: user.name, role: user.role },
     };
+  }
+
+  async completeTwoFactor(
+    twoFactorToken: string,
+    code: string,
+    trustDevice: boolean,
+    req: Request,
+    res: Response,
+  ): Promise<AuthTokens & { user: AuthUser }> {
+    const { userId } = await this.twoFactorService.verify(twoFactorToken, code);
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, name: true, role: true, isActive: true },
+    });
+
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('User not found or inactive');
+    }
+
+    if (trustDevice) {
+      await this.twoFactorService.setTrustedDevice(user.id, req, res);
+    }
+
+    const tokens = await this.issueTokenPair(user.id, user.email, user.role, res);
+    return {
+      ...tokens,
+      user: { id: user.id, email: user.email, name: user.name, role: user.role },
+    };
+  }
+
+  async enableTwoFactor(userId: string, password: string): Promise<void> {
+    await this.verifyPasswordForUser(userId, password);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { isTwoFactorEnabled: true },
+    });
+  }
+
+  async disableTwoFactor(userId: string, password: string, res: Response): Promise<void> {
+    await this.verifyPasswordForUser(userId, password);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { isTwoFactorEnabled: false },
+    });
+    await this.twoFactorService.revokeTrustedDevices(userId, res);
+  }
+
+  private async verifyPasswordForUser(userId: string, password: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { passwordHash: true },
+    });
+
+    if (!user?.passwordHash) {
+      throw new BadRequestException('Password confirmation is required');
+    }
+
+    const isValid = await argon2.verify(user.passwordHash, password);
+
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid password');
+    }
   }
 
   /**

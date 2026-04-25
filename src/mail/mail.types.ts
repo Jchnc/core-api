@@ -7,3 +7,9 @@ export interface ResetPasswordContext {
 export interface WelcomeContext {
   name: string;
 }
+
+export interface TwoFactorCodeContext {
+  name: string;
+  code: string;
+  expiresInMinutes: number;
+}

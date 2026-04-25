@@ -20,19 +20,22 @@ enum TokenType {
 }
 
 model User {
-  id              String    @id @default(uuid())
-  email           String    @unique
-  name            String
-  passwordHash    String?   @map("password_hash")
-  role            Role      @default(USER)
-  isEmailVerified Boolean   @default(false) @map("is_email_verified")
-  isActive        Boolean   @default(true) @map("is_active")
-  deletedAt       DateTime? @map("deleted_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id                 String    @id @default(uuid())
+  email              String    @unique
+  name               String
+  passwordHash       String?   @map("password_hash")
+  role               Role      @default(USER)
+  isEmailVerified    Boolean   @default(false) @map("is_email_verified")
+  isActive           Boolean   @default(true) @map("is_active")
+  isTwoFactorEnabled Boolean   @default(false) @map("is_two_factor_enabled")
+  deletedAt          DateTime? @map("deleted_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
 
-  tokens        Token[]
-  oauthAccounts OAuthAccount[]
+  tokens            Token[]
+  oauthAccounts     OAuthAccount[]
+  twoFactorSessions TwoFactorSession[]
+  trustedDevices    TrustedDevice[]
 
   @@index([deletedAt])
   @@map("users")
@@ -70,4 +73,33 @@ model OAuthAccount {
   @@unique([provider, providerId])
   @@index([userId])
   @@map("oauth_accounts")
+}
+
+model TwoFactorSession {
+  id         String    @id @default(uuid())
+  codeHash   String    @map("code_hash")
+  attempts   Int       @default(0)
+  verifiedAt DateTime? @map("verified_at")
+  expiresAt  DateTime  @map("expires_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("two_factor_sessions")
+}
+
+model TrustedDevice {
+  id          String   @id @default(uuid())
+  tokenHash   String   @unique @map("token_hash")
+  deviceLabel String   @map("device_label")
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("trusted_devices")
 }

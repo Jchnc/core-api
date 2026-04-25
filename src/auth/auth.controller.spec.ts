@@ -64,9 +64,10 @@ describe('AuthController', () => {
       };
       mockAuthService.login.mockResolvedValue(expectedResult);
 
-      const result = await controller.login(dto, mockResponse);
+      const mockReq = { cookies: {} } as unknown as import('express').Request;
+      const result = await controller.login(dto, mockReq, mockResponse);
 
-      expect(mockAuthService.login).toHaveBeenCalledWith(dto, mockResponse);
+      expect(mockAuthService.login).toHaveBeenCalledWith(dto, mockReq, mockResponse);
       expect(result).toEqual({ data: expectedResult, message: 'Login successful' });
     });
   });
