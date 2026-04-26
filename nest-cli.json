@@ -5,6 +5,15 @@
   "compilerOptions": {
     "deleteOutDir": true,
     "watchAssets": true,
-    "assets": ["mail/templates/**/*.hbs"]
+    "assets": ["mail/templates/**/*.hbs"],
+    "plugins": [
+      {
+        "name": "@nestjs/swagger",
+        "options": {
+          "classValidatorShim": true,
+          "introspectComments": true
+        }
+      }
+    ]
   }
 }
