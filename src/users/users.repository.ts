@@ -74,11 +74,12 @@ export class UsersRepository {
   }
 
   async softDelete(id: string): Promise<void> {
-    await this.prisma.user.update({
-      where: { id },
-      data: { deletedAt: new Date(), isActive: false },
-    });
-
-    await this.prisma.token.deleteMany({ where: { userId: id } });
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id },
+        data: { deletedAt: new Date(), isActive: false },
+      }),
+      this.prisma.token.deleteMany({ where: { userId: id } }),
+    ]);
   }
 }

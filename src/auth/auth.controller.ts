@@ -65,9 +65,10 @@ export class AuthController {
   }
 
   // POST /api/v1/auth/logout
+  @Public()
+  @UseGuards(JwtRefreshGuard)
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout and invalidate refresh token' })
   async logout(@CurrentUser() user: JwtRefreshPayload, @Res({ passthrough: true }) res: Response) {
     await this.authService.logout(user.tokenId, res);

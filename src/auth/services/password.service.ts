@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
 import { randomUUID } from 'crypto';
-
 import { HashingService } from './hashing.service';
 
 import { TokenType } from '@/generated/prisma/enums';
@@ -32,10 +32,11 @@ export class PasswordService {
 
     const tokenTtl = this.configService.get<number>('app.passwordResetTokenTtl', 3600);
     const resetToken = randomUUID();
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
 
     await this.prisma.token.create({
       data: {
-        token: resetToken,
+        token: hashedToken,
         type: TokenType.PASSWORD_RESET,
         userId: user.id,
         expiresAt: new Date(Date.now() + tokenTtl * 1000),
@@ -53,8 +54,10 @@ export class PasswordService {
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<void> {
+    const hashedToken = crypto.createHash('sha256').update(dto.token).digest('hex');
+
     const tokenRecord = await this.prisma.token.findUnique({
-      where: { token: dto.token },
+      where: { token: hashedToken },
       select: {
         id: true,
         type: true,
