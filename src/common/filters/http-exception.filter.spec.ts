@@ -5,6 +5,14 @@ import { Request, Response } from 'express';
 describe('AllExceptionsFilter', () => {
   let filter: AllExceptionsFilter;
 
+  const createMockHost = (request: Partial<Request>, response: Partial<Response>): ArgumentsHost =>
+    ({
+      switchToHttp: jest.fn().mockReturnValue({
+        getResponse: () => response,
+        getRequest: () => request,
+      }),
+    }) as unknown as ArgumentsHost;
+
   beforeEach(() => {
     filter = new AllExceptionsFilter();
     jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
@@ -18,22 +26,19 @@ describe('AllExceptionsFilter', () => {
     expect(filter).toBeDefined();
   });
 
-  it('should handle HttpException correctly', () => {
+  it('should handle HttpException and include requestId in the response', () => {
     const mockJson = jest.fn();
     const mockStatus = jest.fn().mockReturnValue({ json: mockJson });
     const mockResponse = { status: mockStatus } as unknown as Response;
-    const mockRequest = { url: '/test' } as unknown as Request;
+    const mockRequest = {
+      url: '/test',
+      headers: { 'x-request-id': 'req-abc-123' },
+    } as unknown as Request;
 
-    const mockArgumentsHost = {
-      switchToHttp: jest.fn().mockReturnValue({
-        getResponse: () => mockResponse,
-        getRequest: () => mockRequest,
-      }),
-    } as unknown as ArgumentsHost;
-
+    const host = createMockHost(mockRequest, mockResponse);
     const exception = new HttpException('Forbidden', HttpStatus.FORBIDDEN);
 
-    filter.catch(exception, mockArgumentsHost);
+    filter.catch(exception, host);
 
     expect(mockStatus).toHaveBeenCalledWith(HttpStatus.FORBIDDEN);
     expect(mockJson).toHaveBeenCalledWith(
@@ -42,6 +47,7 @@ describe('AllExceptionsFilter', () => {
         message: 'Forbidden',
         error: 'Forbidden',
         path: '/test',
+        requestId: 'req-abc-123',
       }),
     );
   });
@@ -50,21 +56,18 @@ describe('AllExceptionsFilter', () => {
     const mockJson = jest.fn();
     const mockStatus = jest.fn().mockReturnValue({ json: mockJson });
     const mockResponse = { status: mockStatus } as unknown as Response;
-    const mockRequest = { url: '/test-validation' } as unknown as Request;
+    const mockRequest = {
+      url: '/test-validation',
+      headers: { 'x-request-id': 'req-val-456' },
+    } as unknown as Request;
 
-    const mockArgumentsHost = {
-      switchToHttp: jest.fn().mockReturnValue({
-        getResponse: () => mockResponse,
-        getRequest: () => mockRequest,
-      }),
-    } as unknown as ArgumentsHost;
-
+    const host = createMockHost(mockRequest, mockResponse);
     const exception = new HttpException(
       { message: ['validation error'], error: 'Bad Request' },
       HttpStatus.BAD_REQUEST,
     );
 
-    filter.catch(exception, mockArgumentsHost);
+    filter.catch(exception, host);
 
     expect(mockStatus).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
     expect(mockJson).toHaveBeenCalledWith(
@@ -73,26 +76,24 @@ describe('AllExceptionsFilter', () => {
         message: ['validation error'],
         error: 'Bad Request',
         path: '/test-validation',
+        requestId: 'req-val-456',
       }),
     );
   });
 
-  it('should handle standard Error correctly', () => {
+  it('should handle standard Error and log with requestId', () => {
     const mockJson = jest.fn();
     const mockStatus = jest.fn().mockReturnValue({ json: mockJson });
     const mockResponse = { status: mockStatus } as unknown as Response;
-    const mockRequest = { url: '/internal' } as unknown as Request;
+    const mockRequest = {
+      url: '/internal',
+      headers: { 'x-request-id': 'req-err-789' },
+    } as unknown as Request;
 
-    const mockArgumentsHost = {
-      switchToHttp: jest.fn().mockReturnValue({
-        getResponse: () => mockResponse,
-        getRequest: () => mockRequest,
-      }),
-    } as unknown as ArgumentsHost;
-
+    const host = createMockHost(mockRequest, mockResponse);
     const exception = new Error('Database down');
 
-    filter.catch(exception, mockArgumentsHost);
+    filter.catch(exception, host);
 
     expect(mockStatus).toHaveBeenCalledWith(HttpStatus.INTERNAL_SERVER_ERROR);
     expect(mockJson).toHaveBeenCalledWith(
@@ -101,8 +102,33 @@ describe('AllExceptionsFilter', () => {
         message: 'Internal server error',
         error: 'Internal Server Error',
         path: '/internal',
+        requestId: 'req-err-789',
       }),
     );
-    expect(Logger.prototype.error).toHaveBeenCalled();
+    expect(Logger.prototype.error).toHaveBeenCalledWith(
+      '[req-err-789] Database down',
+      expect.any(String),
+    );
+  });
+
+  it('should fallback requestId to "-" when header is missing', () => {
+    const mockJson = jest.fn();
+    const mockStatus = jest.fn().mockReturnValue({ json: mockJson });
+    const mockResponse = { status: mockStatus } as unknown as Response;
+    const mockRequest = {
+      url: '/no-id',
+      headers: {},
+    } as unknown as Request;
+
+    const host = createMockHost(mockRequest, mockResponse);
+    const exception = new HttpException('Not Found', HttpStatus.NOT_FOUND);
+
+    filter.catch(exception, host);
+
+    expect(mockJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestId: '-',
+      }),
+    );
   });
 });

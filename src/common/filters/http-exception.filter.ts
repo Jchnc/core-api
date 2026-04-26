@@ -8,12 +8,15 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
+import { REQUEST_ID_HEADER } from '@/common/middleware/request-id.middleware';
+
 interface ErrorResponse {
   statusCode: number;
   message: string | string[];
   error: string;
   timestamp: string;
   path: string;
+  requestId: string;
 }
 
 @Catch()
@@ -24,6 +27,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
+
+    const requestId = (request.headers[REQUEST_ID_HEADER] as string | undefined) ?? '-';
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message: string | string[] = 'Internal server error';
@@ -42,7 +47,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         error = (res.error as string) ?? error;
       }
     } else if (exception instanceof Error) {
-      this.logger.error(exception.message, exception.stack);
+      this.logger.error(`[${requestId}] ${exception.message}`, exception.stack);
     }
 
     const body: ErrorResponse = {
@@ -51,6 +56,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       error,
       timestamp: new Date().toISOString(),
       path: request.url,
+      requestId,
     };
 
     response.status(status).json(body);

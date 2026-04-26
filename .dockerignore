@@ -1,0 +1,56 @@
+# Dependencies (installed by npm ci in Docker)
+node_modules
+
+# Build output (rebuilt in Docker)
+dist
+
+# Version control
+.git
+.github
+.gitignore
+
+# Environment files (secrets injected at runtime)
+.env
+.env.*
+!.env.example
+
+# IDE & editor files
+.vscode
+.idea
+*.sublime-workspace
+
+# Testing & coverage
+coverage
+.nyc_output
+test
+**/*.spec.ts
+**/*.e2e-spec.ts
+jest.config.ts
+
+# Linting & formatting config (not needed at runtime)
+eslint.config.mjs
+.prettierrc
+commitlint.config.ts
+.husky
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+LICENSE
+*.md
+
+# Temporary files
+.temp
+.tmp
+*.log
+
+# TypeScript build info
+tsconfig.tsbuildinfo
+
+# Docker itself
+Dockerfile
+docker-compose.yml
+.dockerignore

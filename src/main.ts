@@ -7,6 +7,7 @@ import 'dotenv/config';
 import helmet from 'helmet';
 
 import { AppModule } from './app.module';
+import { REQUEST_ID_HEADER } from './common/middleware/request-id.middleware';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 async function bootstrap(): Promise<void> {
@@ -46,7 +47,8 @@ async function bootstrap(): Promise<void> {
     origin: frontendUrl,
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', REQUEST_ID_HEADER],
+    exposedHeaders: [REQUEST_ID_HEADER],
   });
 
   // Swagger — only in non-production
