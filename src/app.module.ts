@@ -5,8 +5,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { minutes, seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import 'dotenv/config';
 
-import { AppController } from '@/app.controller';
-import { AppService } from '@/app.service';
+import { HealthModule } from '@/health';
 
 import { AllExceptionsFilter } from '@/common/filters/http-exception.filter';
 import { TransformInterceptor } from '@/common/interceptors/transform.interceptor';
@@ -32,15 +31,14 @@ import { UsersModule } from '@/users';
       ],
     }),
     PrismaModule,
+    HealthModule,
     UsersModule,
   ],
-  controllers: [AppController],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
     ThrottlerGuard,
     { provide: APP_GUARD, useExisting: ThrottlerGuard },
-    AppService,
   ],
 })
 export class AppModule {}
