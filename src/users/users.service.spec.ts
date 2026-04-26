@@ -2,6 +2,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { JwtPayload } from '@/auth/types/jwt-payload.type';
+import { Prisma } from '@/generated/prisma/client';
 import { Role } from '@/generated/prisma/client';
 import { buildUser } from '@test/factories/user.factory';
 import { UsersRepository } from './users.repository';
@@ -125,7 +126,12 @@ describe('UsersService', () => {
     });
 
     it('throws NotFoundException when user does not exist', async () => {
-      repository.findById.mockResolvedValue(null);
+      repository.update.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Not found', {
+          code: 'P2025',
+          clientVersion: '7.8.0',
+        }),
+      );
 
       await expect(service.updateRole('ghost-id', { role: Role.ADMIN })).rejects.toThrow(
         NotFoundException,
@@ -145,7 +151,12 @@ describe('UsersService', () => {
     });
 
     it('throws NotFoundException for non-existent user', async () => {
-      repository.findById.mockResolvedValue(null);
+      repository.softDelete.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Not found', {
+          code: 'P2025',
+          clientVersion: '7.8.0',
+        }),
+      );
 
       await expect(service.remove('ghost-id')).rejects.toThrow(NotFoundException);
     });
