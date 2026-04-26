@@ -1,12 +1,11 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as argon2 from 'argon2';
+import { MailService } from '../mail';
+import { PrismaService } from '../prisma';
+import { HashingService } from './services/hashing.service';
 import { randomInt, randomUUID } from 'crypto';
 import { Request, Response } from 'express';
 import * as UAParser from 'ua-parser-js';
-
-import { MailService } from '../mail';
-import { PrismaService } from '../prisma';
 import type { TwoFactorRequiredResponse } from './types/two-factor.types';
 
 const TRUSTED_COOKIE = 'trusted_device';
@@ -18,16 +17,8 @@ export class TwoFactorService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
+    private readonly hashingService: HashingService,
   ) {}
-
-  private get argon2Options(): argon2.Options {
-    return {
-      type: argon2.argon2id,
-      memoryCost: this.configService.get<number>('security.argon2.memoryCost', 65536),
-      timeCost: this.configService.get<number>('security.argon2.timeCost', 3),
-      parallelism: this.configService.get<number>('security.argon2.parallelism', 4),
-    };
-  }
 
   /**
    * Initiates a 2FA session for the user
@@ -41,14 +32,14 @@ export class TwoFactorService {
     userEmail: string,
     userName: string,
   ): Promise<TwoFactorRequiredResponse> {
-    const ttl = this.configService.get<number>('TWO_FACTOR_CODE_TTL', 600);
+    const ttl = this.configService.get<number>('security.twoFactor.codeTtl', 600);
 
     await this.prisma.twoFactorSession.deleteMany({
       where: { userId, verifiedAt: null },
     });
 
     const rawCode = String(randomInt(100_000, 999_999));
-    const codeHash = await argon2.hash(rawCode, this.argon2Options);
+    const codeHash = await this.hashingService.hash(rawCode);
     const sessionToken = randomUUID();
 
     await this.prisma.twoFactorSession.create({
@@ -76,7 +67,7 @@ export class TwoFactorService {
    * @returns The user ID associated with the verified session
    */
   async verify(twoFactorToken: string, rawCode: string): Promise<{ userId: string }> {
-    const maxAttempts = this.configService.get<number>('TWO_FACTOR_MAX_ATTEMPTS', 5);
+    const maxAttempts = this.configService.get<number>('security.twoFactor.maxAttempts', 5);
 
     const session = await this.prisma.twoFactorSession.findUnique({
       where: { id: twoFactorToken },
@@ -104,7 +95,7 @@ export class TwoFactorService {
       throw new UnauthorizedException('Too many failed attempts. Please log in again.');
     }
 
-    const isValid = await argon2.verify(session.codeHash, rawCode);
+    const isValid = await this.hashingService.verify(session.codeHash, rawCode);
 
     if (!isValid) {
       await this.prisma.twoFactorSession.update({
@@ -142,7 +133,7 @@ export class TwoFactorService {
     });
 
     for (const device of devices) {
-      const match = await argon2.verify(device.tokenHash, rawToken);
+      const match = await this.hashingService.verify(device.tokenHash, rawToken);
       if (match) return true;
     }
 
@@ -156,11 +147,11 @@ export class TwoFactorService {
    * @param res Response object
    */
   async setTrustedDevice(userId: string, req: Request, res: Response): Promise<void> {
-    const ttlDays = this.configService.get<number>('TRUSTED_DEVICE_TTL_DAYS', 30);
+    const ttlDays = this.configService.get<number>('security.twoFactor.trustedDeviceTtlDays', 30);
     const isProd = this.configService.get<string>('app.nodeEnv') === 'production';
 
     const rawToken = randomUUID();
-    const tokenHash = await argon2.hash(rawToken, this.argon2Options);
+    const tokenHash = await this.hashingService.hash(rawToken);
 
     const ua = new UAParser.UAParser(req.headers['user-agent']);
     const browser = ua.getBrowser().name ?? 'Unknown Browser';
