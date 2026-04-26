@@ -8,6 +8,7 @@ import { AuthService } from './auth.service';
 import { TokenService } from './services/token.service';
 import { PasswordService } from './services/password.service';
 import { HashingService } from './services/hashing.service';
+import { TokenCleanupService } from './services/token-cleanup.service';
 import { JwtAccessGuard } from './guards/jwt-access.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
@@ -25,6 +26,7 @@ import { TwoFactorService } from './two-factor.service';
     TokenService,
     PasswordService,
     TwoFactorService,
+    TokenCleanupService,
     JwtAccessStrategy,
     JwtRefreshStrategy,
     GoogleStrategy,
