@@ -79,7 +79,6 @@ describe('JwtRefreshStrategy', () => {
               isActive: true,
               isEmailVerified: true,
               isTwoFactorEnabled: true,
-              passwordHash: true,
               createdAt: true,
               updatedAt: true,
             },

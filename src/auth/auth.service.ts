@@ -35,7 +35,6 @@ export interface AuthUser {
   isActive?: boolean;
   isEmailVerified?: boolean;
   isTwoFactorEnabled?: boolean;
-  hasPassword?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -159,7 +158,6 @@ export class AuthService {
         isActive: user.isActive,
         isEmailVerified: user.isEmailVerified,
         isTwoFactorEnabled: user.isTwoFactorEnabled,
-        hasPassword: !!user.passwordHash,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
@@ -302,14 +300,7 @@ export class AuthService {
   async getCurrentUser(userId: string): Promise<AuthUser> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        isTwoFactorEnabled: true,
-        passwordHash: true,
-      },
+      select: { id: true, email: true, name: true, role: true, isTwoFactorEnabled: true },
     });
 
     if (!user) throw new NotFoundException('User not found');
@@ -435,7 +426,6 @@ export class AuthService {
         name: user.name,
         role: user.role,
         isTwoFactorEnabled: user.isTwoFactorEnabled,
-        hasPassword: !!user.passwordHash,
       },
     };
   }
@@ -458,7 +448,6 @@ export class AuthService {
         role: true,
         isActive: true,
         isTwoFactorEnabled: true,
-        passwordHash: true,
       },
     });
 
@@ -479,7 +468,6 @@ export class AuthService {
         name: user.name,
         role: user.role,
         isTwoFactorEnabled: user.isTwoFactorEnabled,
-        hasPassword: !!user.passwordHash,
       },
     };
   }
