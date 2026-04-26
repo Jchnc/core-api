@@ -8,6 +8,7 @@ export interface MockUser {
   role: Role;
   isActive: boolean;
   isEmailVerified: boolean;
+  isTwoFactorEnabled: boolean;
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -22,6 +23,7 @@ export function buildUser(overrides: Partial<MockUser> = {}): MockUser {
     role: Role.USER,
     isActive: true,
     isEmailVerified: false,
+    isTwoFactorEnabled: false,
     deletedAt: null,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),

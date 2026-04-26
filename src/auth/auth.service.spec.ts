@@ -279,11 +279,18 @@ describe('AuthService', () => {
         email: user.email,
         name: user.name,
         role: user.role,
+        isTwoFactorEnabled: user.isTwoFactorEnabled,
       });
 
       const result = await service.getCurrentUser(user.id);
 
-      expect(result).toEqual({ id: user.id, email: user.email, name: user.name, role: user.role });
+      expect(result).toEqual({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        isTwoFactorEnabled: user.isTwoFactorEnabled,
+      });
     });
 
     it('throws NotFoundException when user does not exist', async () => {

@@ -43,6 +43,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
             role: true,
             isActive: true,
             isEmailVerified: true,
+            isTwoFactorEnabled: true,
             createdAt: true,
             updatedAt: true,
           },

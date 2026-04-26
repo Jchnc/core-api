@@ -73,12 +73,13 @@ describe('JwtRefreshStrategy', () => {
           user: {
             select: {
               id: true,
-              isActive: true,
-              createdAt: true,
               email: true,
-              isEmailVerified: true,
               name: true,
               role: true,
+              isActive: true,
+              isEmailVerified: true,
+              isTwoFactorEnabled: true,
+              createdAt: true,
               updatedAt: true,
             },
           },

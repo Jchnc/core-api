@@ -11,6 +11,7 @@ const USER_SELECT = {
   role: true,
   isActive: true,
   isEmailVerified: true,
+  isTwoFactorEnabled: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.UserSelect;

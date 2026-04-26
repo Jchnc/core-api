@@ -34,6 +34,7 @@ export interface AuthUser {
   role: string;
   isActive?: boolean;
   isEmailVerified?: boolean;
+  isTwoFactorEnabled?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -156,6 +157,7 @@ export class AuthService {
         role: user.role,
         isActive: user.isActive,
         isEmailVerified: user.isEmailVerified,
+        isTwoFactorEnabled: user.isTwoFactorEnabled,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
@@ -298,7 +300,7 @@ export class AuthService {
   async getCurrentUser(userId: string): Promise<AuthUser> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, role: true },
+      select: { id: true, email: true, name: true, role: true, isTwoFactorEnabled: true },
     });
 
     if (!user) throw new NotFoundException('User not found');
@@ -409,7 +411,13 @@ export class AuthService {
 
     return {
       ...tokens,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        isTwoFactorEnabled: user.isTwoFactorEnabled,
+      },
     };
   }
 
@@ -424,7 +432,14 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, role: true, isActive: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        isTwoFactorEnabled: true,
+      },
     });
 
     if (!user || !user.isActive) {
@@ -438,7 +453,13 @@ export class AuthService {
     const tokens = await this.issueTokenPair(user.id, user.email, user.role, res);
     return {
       ...tokens,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        isTwoFactorEnabled: user.isTwoFactorEnabled,
+      },
     };
   }
 

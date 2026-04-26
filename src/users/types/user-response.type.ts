@@ -7,6 +7,7 @@ export interface UserResponse {
   role: Role;
   isActive: boolean;
   isEmailVerified: boolean;
+  isTwoFactorEnabled: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
