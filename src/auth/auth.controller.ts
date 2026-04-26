@@ -17,7 +17,17 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { PasswordService } from './services/password.service';
-import { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto, SetPasswordDto } from './dto';
+import {
+  ForgotPasswordDto,
+  LoginDto,
+  RegisterDto,
+  ResetPasswordDto,
+  SetPasswordDto,
+  UserResponseDto,
+  LoginGenericResponseDto,
+  NullResponseDto,
+  TokensResponseDto,
+} from './dto';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { JwtPayload, JwtRefreshPayload, JwtRefreshPayloadWithUser } from './types/jwt-payload.type';
 
@@ -42,9 +52,12 @@ export class AuthController {
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 409, description: 'Email already registered' })
-  async register(@Body() dto: RegisterDto) {
+  async register(@Body() dto: RegisterDto): Promise<UserResponseDto> {
     const user = await this.authService.register(dto);
-    return { data: user, message: 'User registered successfully' };
+    return {
+      data: user as unknown as UserResponseDto['data'],
+      message: 'User registered successfully',
+    };
   }
 
   // POST /api/v1/auth/login
@@ -59,9 +72,12 @@ export class AuthController {
     @Body() dto: LoginDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
-  ) {
+  ): Promise<LoginGenericResponseDto> {
     const result = await this.authService.login(dto, req, res);
-    return { data: result, message: 'Login successful' };
+    return {
+      data: result as unknown as LoginGenericResponseDto['data'],
+      message: 'Login successful',
+    };
   }
 
   // POST /api/v1/auth/logout
@@ -70,7 +86,10 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Logout and invalidate refresh token' })
-  async logout(@CurrentUser() user: JwtRefreshPayload, @Res({ passthrough: true }) res: Response) {
+  async logout(
+    @CurrentUser() user: JwtRefreshPayload,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<NullResponseDto> {
     await this.authService.logout(user.tokenId, res);
     return { data: null, message: 'Logged out successfully' };
   }
@@ -87,7 +106,7 @@ export class AuthController {
   async refresh(
     @CurrentUser() payload: JwtRefreshPayload,
     @Res({ passthrough: true }) res: Response,
-  ) {
+  ): Promise<TokensResponseDto> {
     const tokens = await this.authService.refresh(payload, res);
     return { data: tokens, message: 'Tokens refreshed' };
   }
@@ -99,7 +118,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Request password reset email' })
   @ApiResponse({ status: 200, description: 'Reset email sent if account exists' })
-  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+  async forgotPassword(@Body() dto: ForgotPasswordDto): Promise<NullResponseDto> {
     await this.passwordService.forgotPassword(dto);
     return {
       data: null,
@@ -115,7 +134,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Reset password using token from email' })
   @ApiResponse({ status: 200, description: 'Password reset successfully' })
   @ApiResponse({ status: 400, description: 'Invalid or expired token' })
-  async resetPassword(@Body() dto: ResetPasswordDto) {
+  async resetPassword(@Body() dto: ResetPasswordDto): Promise<NullResponseDto> {
     await this.passwordService.resetPassword(dto);
     return { data: null, message: 'Password reset successfully' };
   }
@@ -125,9 +144,9 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current authenticated user' })
   @ApiResponse({ status: 200, description: 'Current user data' })
-  async me(@CurrentUser() user: JwtRefreshPayload) {
+  async me(@CurrentUser() user: JwtRefreshPayload): Promise<UserResponseDto> {
     const currentUser = await this.authService.getCurrentUser(user.sub);
-    return { data: currentUser };
+    return { data: currentUser as unknown as UserResponseDto['data'] };
   }
 
   // POST /api/v1/auth/session
@@ -139,7 +158,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Verify session and get fresh access token (no token rotation)' })
   @ApiResponse({ status: 200, description: 'Session verified' })
   @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
-  session(@CurrentUser() payload: JwtRefreshPayloadWithUser) {
+  session(@CurrentUser() payload: JwtRefreshPayloadWithUser): TokensResponseDto {
     const result = this.authService.verifySession(
       payload.sub,
       payload.email,
@@ -193,7 +212,7 @@ export class AuthController {
     @Body() dto: VerifyTwoFactorDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
-  ) {
+  ): Promise<LoginGenericResponseDto> {
     const result = await this.authService.completeTwoFactor(
       dto.two_factor_token,
       dto.code,
@@ -201,7 +220,10 @@ export class AuthController {
       req,
       res,
     );
-    return { data: result, message: 'Login successful' };
+    return {
+      data: result as unknown as LoginGenericResponseDto['data'],
+      message: 'Login successful',
+    };
   }
 
   // POST /api/v1/auth/2fa/enable
@@ -209,7 +231,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Enable 2FA for current user (requires password confirmation)' })
-  async enableTwoFactor(@CurrentUser() user: JwtPayload, @Body() dto: ConfirmPasswordDto) {
+  async enableTwoFactor(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: ConfirmPasswordDto,
+  ): Promise<NullResponseDto> {
     await this.authService.enableTwoFactor(user.sub, dto.password);
     return { data: null, message: 'Two-factor authentication enabled' };
   }
@@ -225,7 +250,7 @@ export class AuthController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: ConfirmPasswordDto,
     @Res({ passthrough: true }) res: Response,
-  ) {
+  ): Promise<NullResponseDto> {
     await this.authService.disableTwoFactor(user.sub, dto.password, res);
     return { data: null, message: 'Two-factor authentication disabled' };
   }
@@ -235,7 +260,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Set password for OAuth-only accounts' })
-  async setPassword(@CurrentUser() user: JwtPayload, @Body() dto: SetPasswordDto) {
+  async setPassword(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: SetPasswordDto,
+  ): Promise<NullResponseDto> {
     await this.passwordService.setPassword(user.sub, dto);
     return { data: null, message: 'Password set successfully' };
   }
