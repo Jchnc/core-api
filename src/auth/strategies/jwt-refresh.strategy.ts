@@ -44,6 +44,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
             isActive: true,
             isEmailVerified: true,
             isTwoFactorEnabled: true,
+            passwordHash: true,
             createdAt: true,
             updatedAt: true,
           },
@@ -76,6 +77,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
       throw new UnauthorizedException('User is inactive');
     }
 
-    return { ...payload, tokenId: token.id, user: token.user };
+    const { passwordHash, ...safeUser } = token.user;
+    return { ...payload, tokenId: token.id, user: { ...safeUser, hasPassword: !!passwordHash } };
   }
 }

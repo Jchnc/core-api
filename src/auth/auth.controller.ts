@@ -16,7 +16,7 @@ import { seconds, SkipThrottle, Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
-import { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto } from './dto';
+import { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto, SetPasswordDto } from './dto';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { JwtPayload, JwtRefreshPayload, JwtRefreshPayloadWithUser } from './types/jwt-payload.type';
 
@@ -223,5 +223,15 @@ export class AuthController {
   ) {
     await this.authService.disableTwoFactor(user.sub, dto.password, res);
     return { data: null, message: 'Two-factor authentication disabled' };
+  }
+
+  // POST /api/v1/auth/set-password
+  @Post('set-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Set password for OAuth-only accounts' })
+  async setPassword(@CurrentUser() user: JwtPayload, @Body() dto: SetPasswordDto) {
+    await this.authService.setPassword(user.sub, dto);
+    return { data: null, message: 'Password set successfully' };
   }
 }

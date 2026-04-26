@@ -58,7 +58,7 @@ describe('JwtRefreshStrategy', () => {
         id: 'token-1',
         usedAt: null,
         expiresAt: new Date(Date.now() + 10000), // future
-        user: { id: 'user-1', isActive: true },
+        user: { id: 'user-1', isActive: true, passwordHash: null },
       };
       mockPrismaService.token.findUnique.mockResolvedValue(mockToken);
 
@@ -79,6 +79,7 @@ describe('JwtRefreshStrategy', () => {
               isActive: true,
               isEmailVerified: true,
               isTwoFactorEnabled: true,
+              passwordHash: true,
               createdAt: true,
               updatedAt: true,
             },
@@ -91,6 +92,7 @@ describe('JwtRefreshStrategy', () => {
         user: {
           id: 'user-1',
           isActive: true,
+          hasPassword: false,
         },
       });
     });
@@ -116,7 +118,7 @@ describe('JwtRefreshStrategy', () => {
         id: 'token-1',
         usedAt: new Date(Date.now() - 35000), // 35 seconds ago, outside the 30s grace period
         expiresAt: new Date(Date.now() + 10000),
-        user: { id: 'user-1', isActive: true },
+        user: { id: 'user-1', isActive: true, passwordHash: null },
       };
       mockPrismaService.token.findUnique.mockResolvedValue(mockToken);
 
@@ -133,7 +135,7 @@ describe('JwtRefreshStrategy', () => {
         id: 'token-1',
         usedAt: null,
         expiresAt: new Date(Date.now() - 10000), // past
-        user: { id: 'user-1', isActive: true },
+        user: { id: 'user-1', isActive: true, passwordHash: null },
       };
       mockPrismaService.token.findUnique.mockResolvedValue(mockToken);
 
@@ -147,7 +149,7 @@ describe('JwtRefreshStrategy', () => {
         id: 'token-1',
         usedAt: null,
         expiresAt: new Date(Date.now() + 10000),
-        user: { id: 'user-1', isActive: false },
+        user: { id: 'user-1', isActive: false, passwordHash: null },
       };
       mockPrismaService.token.findUnique.mockResolvedValue(mockToken);
 

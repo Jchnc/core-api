@@ -280,6 +280,7 @@ describe('AuthService', () => {
         name: user.name,
         role: user.role,
         isTwoFactorEnabled: user.isTwoFactorEnabled,
+        passwordHash: user.passwordHash,
       });
 
       const result = await service.getCurrentUser(user.id);
@@ -290,7 +291,9 @@ describe('AuthService', () => {
         name: user.name,
         role: user.role,
         isTwoFactorEnabled: user.isTwoFactorEnabled,
+        hasPassword: true,
       });
+      expect(result).not.toHaveProperty('passwordHash');
     });
 
     it('throws NotFoundException when user does not exist', async () => {

@@ -15,7 +15,7 @@ import type { StringValue } from 'ms';
 import { Role, TokenType } from '@/generated/prisma/enums';
 import { MailService } from '@/mail';
 import { PrismaService } from '@/prisma';
-import { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto } from './dto';
+import { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto, SetPasswordDto } from './dto';
 import { TwoFactorService } from './two-factor.service';
 import { OAuthUserPayload } from './types/google-profile.type';
 import { JwtPayload, JwtRefreshPayload } from './types/jwt-payload.type';
@@ -35,6 +35,7 @@ export interface AuthUser {
   isActive?: boolean;
   isEmailVerified?: boolean;
   isTwoFactorEnabled?: boolean;
+  hasPassword?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -158,6 +159,7 @@ export class AuthService {
         isActive: user.isActive,
         isEmailVerified: user.isEmailVerified,
         isTwoFactorEnabled: user.isTwoFactorEnabled,
+        hasPassword: !!user.passwordHash,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
@@ -300,12 +302,26 @@ export class AuthService {
   async getCurrentUser(userId: string): Promise<AuthUser> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, role: true, isTwoFactorEnabled: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isTwoFactorEnabled: true,
+        passwordHash: true,
+      },
     });
 
     if (!user) throw new NotFoundException('User not found');
 
-    return user;
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      isTwoFactorEnabled: user.isTwoFactorEnabled,
+      hasPassword: !!user.passwordHash,
+    };
   }
 
   verifySession(
@@ -348,6 +364,7 @@ export class AuthService {
         role: true,
         isActive: true,
         isTwoFactorEnabled: true,
+        passwordHash: true,
         oauthAccounts: {
           where: {
             provider: payload.provider,
@@ -394,6 +411,7 @@ export class AuthService {
           role: true,
           isActive: true,
           isTwoFactorEnabled: true,
+          passwordHash: true,
           oauthAccounts: { select: { id: true } },
         },
       });
@@ -417,6 +435,7 @@ export class AuthService {
         name: user.name,
         role: user.role,
         isTwoFactorEnabled: user.isTwoFactorEnabled,
+        hasPassword: !!user.passwordHash,
       },
     };
   }
@@ -439,6 +458,7 @@ export class AuthService {
         role: true,
         isActive: true,
         isTwoFactorEnabled: true,
+        passwordHash: true,
       },
     });
 
@@ -459,6 +479,7 @@ export class AuthService {
         name: user.name,
         role: user.role,
         isTwoFactorEnabled: user.isTwoFactorEnabled,
+        hasPassword: !!user.passwordHash,
       },
     };
   }
@@ -480,6 +501,26 @@ export class AuthService {
       data: { isTwoFactorEnabled: false },
     });
     await this.twoFactorService.revokeTrustedDevices(userId, res);
+  }
+
+  async setPassword(userId: string, dto: SetPasswordDto): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { passwordHash: true },
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+
+    if (user.passwordHash) {
+      throw new BadRequestException('Password is already set. Use reset password instead.');
+    }
+
+    const passwordHash = await argon2.hash(dto.password, this.argon2Options);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
   }
 
   private async verifyPasswordForUser(userId: string, password: string): Promise<void> {
