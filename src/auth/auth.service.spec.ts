@@ -280,6 +280,7 @@ describe('AuthService', () => {
         name: user.name,
         role: user.role,
         isTwoFactorEnabled: user.isTwoFactorEnabled,
+        passwordHash: null,
       });
 
       const result = await service.getCurrentUser(user.id);
@@ -290,6 +291,7 @@ describe('AuthService', () => {
         name: user.name,
         role: user.role,
         isTwoFactorEnabled: user.isTwoFactorEnabled,
+        hasPassword: false,
       });
     });
 

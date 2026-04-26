@@ -35,6 +35,7 @@ export interface AuthUser {
   isActive?: boolean;
   isEmailVerified?: boolean;
   isTwoFactorEnabled?: boolean;
+  hasPassword?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -300,7 +301,14 @@ export class AuthService {
   async getCurrentUser(userId: string): Promise<AuthUser> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, role: true, isTwoFactorEnabled: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isTwoFactorEnabled: true,
+        passwordHash: true,
+      },
     });
 
     if (!user) throw new NotFoundException('User not found');
