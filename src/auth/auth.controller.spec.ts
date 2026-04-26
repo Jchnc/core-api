@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Response } from 'express';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { PasswordService } from './services/password.service';
 import { Role } from '@/generated/prisma/enums';
 
 describe('AuthController', () => {
@@ -12,9 +13,13 @@ describe('AuthController', () => {
     login: jest.fn(),
     logout: jest.fn(),
     refresh: jest.fn(),
+    getCurrentUser: jest.fn(),
+  };
+
+  const mockPasswordService = {
     forgotPassword: jest.fn(),
     resetPassword: jest.fn(),
-    getCurrentUser: jest.fn(),
+    setPassword: jest.fn(),
   };
 
   const mockResponse = {
@@ -27,7 +32,10 @@ describe('AuthController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [{ provide: AuthService, useValue: mockAuthService }],
+      providers: [
+        { provide: AuthService, useValue: mockAuthService },
+        { provide: PasswordService, useValue: mockPasswordService },
+      ],
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
@@ -111,11 +119,11 @@ describe('AuthController', () => {
   describe('forgotPassword', () => {
     it('should process forgot password request', async () => {
       const dto = { email: 'test@example.com' };
-      mockAuthService.forgotPassword.mockResolvedValue(undefined);
+      mockPasswordService.forgotPassword.mockResolvedValue(undefined);
 
       const result = await controller.forgotPassword(dto);
 
-      expect(mockAuthService.forgotPassword).toHaveBeenCalledWith(dto);
+      expect(mockPasswordService.forgotPassword).toHaveBeenCalledWith(dto);
       expect(result).toEqual({
         data: null,
         message: 'If that email is registered, a reset link has been sent',
@@ -126,11 +134,11 @@ describe('AuthController', () => {
   describe('resetPassword', () => {
     it('should process reset password request', async () => {
       const dto = { token: 'reset-token', password: 'new-password' };
-      mockAuthService.resetPassword.mockResolvedValue(undefined);
+      mockPasswordService.resetPassword.mockResolvedValue(undefined);
 
       const result = await controller.resetPassword(dto);
 
-      expect(mockAuthService.resetPassword).toHaveBeenCalledWith(dto);
+      expect(mockPasswordService.resetPassword).toHaveBeenCalledWith(dto);
       expect(result).toEqual({ data: null, message: 'Password reset successfully' });
     });
   });

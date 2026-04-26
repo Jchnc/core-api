@@ -5,6 +5,9 @@ import { PassportModule } from '@nestjs/passport';
 
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { TokenService } from './services/token.service';
+import { PasswordService } from './services/password.service';
+import { HashingService } from './services/hashing.service';
 import { JwtAccessGuard } from './guards/jwt-access.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
@@ -17,7 +20,10 @@ import { TwoFactorService } from './two-factor.service';
   imports: [PassportModule, JwtModule.register({}), MailModule],
   controllers: [AuthController],
   providers: [
+    HashingService,
     AuthService,
+    TokenService,
+    PasswordService,
     TwoFactorService,
     JwtAccessStrategy,
     JwtRefreshStrategy,

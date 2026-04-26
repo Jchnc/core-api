@@ -16,6 +16,7 @@ import { seconds, SkipThrottle, Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
+import { PasswordService } from './services/password.service';
 import { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto, SetPasswordDto } from './dto';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { JwtPayload, JwtRefreshPayload, JwtRefreshPayloadWithUser } from './types/jwt-payload.type';
@@ -28,7 +29,10 @@ import { ConfirmPasswordDto, VerifyTwoFactorDto } from './dto';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly passwordService: PasswordService,
+  ) {}
 
   // POST /api/v1/auth/register
   @Public()
@@ -95,7 +99,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Request password reset email' })
   @ApiResponse({ status: 200, description: 'Reset email sent if account exists' })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
-    await this.authService.forgotPassword(dto);
+    await this.passwordService.forgotPassword(dto);
     return {
       data: null,
       message: 'If that email is registered, a reset link has been sent',
@@ -111,7 +115,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Password reset successfully' })
   @ApiResponse({ status: 400, description: 'Invalid or expired token' })
   async resetPassword(@Body() dto: ResetPasswordDto) {
-    await this.authService.resetPassword(dto);
+    await this.passwordService.resetPassword(dto);
     return { data: null, message: 'Password reset successfully' };
   }
 
@@ -231,7 +235,7 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Set password for OAuth-only accounts' })
   async setPassword(@CurrentUser() user: JwtPayload, @Body() dto: SetPasswordDto) {
-    await this.authService.setPassword(user.sub, dto);
+    await this.passwordService.setPassword(user.sub, dto);
     return { data: null, message: 'Password set successfully' };
   }
 }
