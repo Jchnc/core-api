@@ -1,4 +1,4 @@
-import { ExecutionContext, CallHandler } from '@nestjs/common';
+import { ExecutionContext, CallHandler, Logger } from '@nestjs/common';
 import { of } from 'rxjs';
 import { LoggingInterceptor } from './logging.interceptor';
 
@@ -18,7 +18,7 @@ describe('LoggingInterceptor', () => {
   });
 
   it('should log the request method, url, status code, and execution time', (done) => {
-    const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+    const loggerSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation();
 
     const mockExecutionContext = {
       switchToHttp: jest.fn().mockReturnValue({
@@ -32,8 +32,8 @@ describe('LoggingInterceptor', () => {
     } as CallHandler;
 
     interceptor.intercept(mockExecutionContext, mockCallHandler).subscribe(() => {
-      expect(consoleSpy).toHaveBeenCalled();
-      const logMessage = consoleSpy.mock.calls[0][0];
+      expect(loggerSpy).toHaveBeenCalled();
+      const logMessage = loggerSpy.mock.calls[0][0];
       expect(logMessage).toMatch(/\[HTTP\] GET \/api\/v1\/users 200 - \d+ms/);
       done();
     });

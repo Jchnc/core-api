@@ -1,9 +1,11 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { Observable, tap } from 'rxjs';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(LoggingInterceptor.name);
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const ctx = context.switchToHttp();
 
@@ -18,7 +20,7 @@ export class LoggingInterceptor implements NestInterceptor {
         const ms = Date.now() - start;
         const status = res.statusCode;
 
-        console.log(`[HTTP] ${method} ${originalUrl} ${status} - ${ms}ms`);
+        this.logger.log(`[HTTP] ${method} ${originalUrl} ${status} - ${ms}ms`);
       }),
     );
   }

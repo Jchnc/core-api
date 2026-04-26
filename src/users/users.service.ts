@@ -1,4 +1,5 @@
 import { JwtPayload } from '@/auth/types/jwt-payload.type';
+import { Prisma } from '@/generated/prisma/client';
 import { Role } from '@/generated/prisma/client';
 import { PaginatedUsers, UserResponse } from '@/users/types/user-response.type';
 import { UsersRepository } from '@/users/users.repository';
@@ -26,29 +27,41 @@ export class UsersService {
   async update(id: string, dto: UpdateUserDto, requester: JwtPayload): Promise<UserResponse> {
     this.assertSelfOrAdmin(id, requester);
 
-    await this.assertExists(id);
-
-    return this.usersRepository.update(id, dto);
+    try {
+      return await this.usersRepository.update(id, dto);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw new NotFoundException('User not found');
+      }
+      throw error;
+    }
   }
 
   async updateRole(id: string, dto: UpdateRoleDto): Promise<UserResponse> {
-    await this.assertExists(id);
-    return this.usersRepository.update(id, { role: dto.role });
+    try {
+      return await this.usersRepository.update(id, { role: dto.role });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw new NotFoundException('User not found');
+      }
+      throw error;
+    }
   }
 
   async remove(id: string): Promise<void> {
-    await this.assertExists(id);
-    await this.usersRepository.softDelete(id);
+    try {
+      await this.usersRepository.softDelete(id);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw new NotFoundException('User not found');
+      }
+      throw error;
+    }
   }
 
   private assertSelfOrAdmin(targetId: string, requester: JwtPayload): void {
     if (requester.role !== Role.ADMIN && requester.sub !== targetId) {
       throw new ForbiddenException('Access denied');
     }
-  }
-
-  private async assertExists(id: string): Promise<void> {
-    const user = await this.usersRepository.findById(id);
-    if (!user) throw new NotFoundException('User not found');
   }
 }
