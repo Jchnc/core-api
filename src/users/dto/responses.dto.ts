@@ -1,17 +1,18 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserDto } from '@/auth/dto/responses.dto';
 
 export class PaginatedUsersDto {
-  items!: UserDto[];
-  nextCursor!: string | null;
-  total!: number;
+  @ApiProperty({ type: [UserDto] }) items!: UserDto[];
+  @ApiProperty({ nullable: true }) nextCursor!: string | null;
+  @ApiProperty() total!: number;
 }
 
 export class PaginatedUsersResponseDto {
-  data!: PaginatedUsersDto;
-  message?: string;
+  @ApiProperty({ type: PaginatedUsersDto }) data!: PaginatedUsersDto;
+  @ApiPropertyOptional() message?: string;
 }
 
 export class UserSingleResponseDto {
-  data!: UserDto;
-  message?: string;
+  @ApiProperty({ type: UserDto }) data!: UserDto;
+  @ApiPropertyOptional() message?: string;
 }

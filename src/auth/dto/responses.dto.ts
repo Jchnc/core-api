@@ -2,22 +2,22 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Role } from '@/generated/prisma/client';
 
 export class UserDto {
-  id!: string;
-  email!: string;
-  name!: string;
-  role!: Role;
-  isActive!: boolean;
-  isEmailVerified!: boolean;
-  createdAt!: Date;
-  updatedAt!: Date;
+  @ApiProperty() id!: string;
+  @ApiProperty() email!: string;
+  @ApiProperty() name!: string;
+  @ApiProperty({ enum: Role }) role!: Role;
+  @ApiProperty() isActive!: boolean;
+  @ApiProperty() isEmailVerified!: boolean;
+  @ApiProperty() createdAt!: Date;
+  @ApiProperty() updatedAt!: Date;
 }
 
 export class AuthTokensDto {
-  access_token!: string;
+  @ApiProperty() access_token!: string;
 }
 
 export class LoginResponseDto extends AuthTokensDto {
-  user!: UserDto;
+  @ApiProperty({ type: UserDto }) user!: UserDto;
 
   @ApiPropertyOptional({ description: 'Included if 2FA is required' })
   requires_2fa?: boolean;
@@ -28,26 +28,26 @@ export class LoginResponseDto extends AuthTokensDto {
 
 export class GenericResponseDto<T> {
   data!: T;
-  message?: string;
+  @ApiPropertyOptional() message?: string;
 }
 
 export class UserResponseDto {
-  data!: UserDto;
-  message?: string;
+  @ApiProperty({ type: UserDto }) data!: UserDto;
+  @ApiPropertyOptional() message?: string;
 }
 
 export class LoginGenericResponseDto {
-  data!: LoginResponseDto;
-  message?: string;
+  @ApiProperty({ type: LoginResponseDto }) data!: LoginResponseDto;
+  @ApiPropertyOptional() message?: string;
 }
 
 export class TokensResponseDto {
-  data!: AuthTokensDto;
-  message?: string;
+  @ApiProperty({ type: AuthTokensDto }) data!: AuthTokensDto;
+  @ApiPropertyOptional() message?: string;
 }
 
 export class NullResponseDto {
   @ApiProperty({ example: null, nullable: true })
   data!: null;
-  message?: string;
+  @ApiPropertyOptional() message?: string;
 }
