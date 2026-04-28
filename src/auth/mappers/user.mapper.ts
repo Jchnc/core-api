@@ -1,4 +1,4 @@
-import { AuthUser } from '../auth.service';
+import { AuthUser } from '@/common/types/user.types';
 import { UserDto } from '../dto/responses.dto';
 import { Role } from '@/generated/prisma/enums';
 

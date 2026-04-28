@@ -22,19 +22,7 @@ import { JwtPayload, JwtRefreshPayload } from './types/jwt-payload.type';
 import type { TwoFactorRequiredResponse } from './types/two-factor.types';
 import { AuthTokens } from './types/auth-tokens.type';
 
-export interface AuthUser {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  isActive?: boolean;
-  isEmailVerified?: boolean;
-  isTwoFactorEnabled?: boolean;
-  hasPassword?: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-
+import { AuthUser } from '@/common/types/user.types';
 @Injectable()
 export class AuthService {
   constructor(
