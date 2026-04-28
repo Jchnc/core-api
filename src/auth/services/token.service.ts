@@ -8,10 +8,7 @@ import type { StringValue } from 'ms';
 import { Role, TokenType } from '@/generated/prisma/enums';
 import { PrismaService } from '@/prisma';
 import { JwtPayload, JwtRefreshPayload } from '../types/jwt-payload.type';
-
-export interface AuthTokens {
-  access_token: string;
-}
+import { AuthTokens } from '../types/auth-tokens.type';
 
 const REFRESH_COOKIE_NAME = 'refresh_token';
 

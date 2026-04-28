@@ -20,10 +20,7 @@ import { HashingService } from './services/hashing.service';
 import { OAuthUserPayload } from './types/google-profile.type';
 import { JwtPayload, JwtRefreshPayload } from './types/jwt-payload.type';
 import type { TwoFactorRequiredResponse } from './types/two-factor.types';
-
-export interface AuthTokens {
-  access_token: string;
-}
+import { AuthTokens } from './types/auth-tokens.type';
 
 export interface AuthUser {
   id: string;
