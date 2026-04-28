@@ -174,12 +174,12 @@ describe('AuthService', () => {
 
   describe('logout', () => {
     it('deletes token and clears cookie', async () => {
-      prisma.token.deleteMany.mockResolvedValue({ count: 1 });
+      prisma.token.delete.mockResolvedValue({ id: 'token-id' });
       const res = mockResponse() as Response;
 
       await service.logout('token-id', res);
 
-      expect(prisma.token.deleteMany).toHaveBeenCalledWith({
+      expect(prisma.token.delete).toHaveBeenCalledWith({
         where: { id: 'token-id' },
       });
       expect(mockTokenService.clearRefreshCookie).toHaveBeenCalledWith(res);

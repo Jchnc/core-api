@@ -159,7 +159,7 @@ export class AuthService {
    * @param res The response object to clear cookies.
    */
   async logout(tokenId: string, res: Response): Promise<void> {
-    await this.prisma.token.deleteMany({ where: { id: tokenId } });
+    await this.prisma.token.delete({ where: { id: tokenId } });
     this.tokenService.clearRefreshCookie(res);
   }
 
