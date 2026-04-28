@@ -218,12 +218,21 @@ export class AuthService {
     };
   }
 
-  verifySession(
+  async verifySession(
     userId: string,
     email: string,
     role: Role,
     user: AuthUser,
-  ): AuthTokens & { user: AuthUser } {
+  ): Promise<AuthTokens & { user: AuthUser }> {
+    const dbUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { isActive: true },
+    });
+
+    if (!dbUser?.isActive) {
+      throw new UnauthorizedException('User not found or inactive');
+    }
+
     const accessPayload: JwtPayload = { sub: userId, email, role };
 
     const accessToken = this.jwtService.sign(accessPayload, {

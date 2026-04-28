@@ -158,8 +158,8 @@ export class AuthController {
   @ApiOperation({ summary: 'Verify session and get fresh access token (no token rotation)' })
   @ApiResponse({ status: 200, description: 'Session verified' })
   @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
-  session(@CurrentUser() payload: JwtRefreshPayloadWithUser): TokensResponseDto {
-    const result = this.authService.verifySession(
+  async session(@CurrentUser() payload: JwtRefreshPayloadWithUser): Promise<TokensResponseDto> {
+    const result = await this.authService.verifySession(
       payload.sub,
       payload.email,
       payload.role,
