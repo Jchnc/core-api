@@ -7,7 +7,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   constructor(adapter: SqlDriverAdapterFactory, nodeEnv: string) {
     super({
       adapter,
-      log: nodeEnv === 'development' ? ['warn', 'error'] : ['warn', 'error'],
+      log: nodeEnv === 'development' ? ['query', 'warn', 'error'] : ['warn', 'error'],
     });
   }
 
