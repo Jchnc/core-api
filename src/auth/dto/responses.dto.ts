@@ -47,7 +47,7 @@ export class TokensResponseDto {
 }
 
 export class NullResponseDto {
-  @ApiProperty({ example: null, nullable: true })
-  data!: any;
+  @ApiProperty({ example: null, nullable: true, type: 'object' })
+  data!: null;
   message?: string;
 }
