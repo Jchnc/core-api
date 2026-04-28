@@ -6,13 +6,12 @@ import { AuthService } from './auth.service';
 import { TwoFactorService } from './two-factor.service';
 import { TokenService } from './services/token.service';
 import { HashingService } from './services/hashing.service';
-import { PrismaService } from '@/prisma';
+
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { MailService } from '@/mail';
 import { AuthRepository } from './auth.repository';
 
-import { buildPrismaMock, PrismaMock } from '@test/mocks/prisma.mock';
 import { buildJwtServiceMock } from '@test/mocks/jwt.mock';
 import { buildMailServiceMock } from '@test/mocks/mail.mock';
 import { buildConfigServiceMock } from '@test/mocks/config.mock';
