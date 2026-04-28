@@ -35,6 +35,7 @@ import { GoogleGuard } from './guards/google.guard';
 import type { OAuthUserPayload } from './types/google-profile.type';
 
 import { ConfirmPasswordDto, VerifyTwoFactorDto } from './dto';
+import { toUserDto } from './mappers/user.mapper';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -55,7 +56,7 @@ export class AuthController {
   async register(@Body() dto: RegisterDto): Promise<UserResponseDto> {
     const user = await this.authService.register(dto);
     return {
-      data: user as unknown as UserResponseDto['data'],
+      data: toUserDto(user),
       message: 'User registered successfully',
     };
   }
@@ -74,8 +75,19 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<LoginGenericResponseDto> {
     const result = await this.authService.login(dto, req, res);
+
+    if ('requires_2fa' in result) {
+      return {
+        data: result as unknown as LoginGenericResponseDto['data'],
+        message: '2FA required',
+      };
+    }
+
     return {
-      data: result as unknown as LoginGenericResponseDto['data'],
+      data: {
+        access_token: result.access_token,
+        user: toUserDto(result.user),
+      },
       message: 'Login successful',
     };
   }
@@ -146,7 +158,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Current user data' })
   async me(@CurrentUser() user: JwtRefreshPayload): Promise<UserResponseDto> {
     const currentUser = await this.authService.getCurrentUser(user.sub);
-    return { data: currentUser as unknown as UserResponseDto['data'] };
+    return { data: toUserDto(currentUser) };
   }
 
   // POST /api/v1/auth/session
@@ -220,8 +232,19 @@ export class AuthController {
       req,
       res,
     );
+
+    if ('requires_2fa' in result) {
+      return {
+        data: result as unknown as LoginGenericResponseDto['data'],
+        message: '2FA required',
+      };
+    }
+
     return {
-      data: result as unknown as LoginGenericResponseDto['data'],
+      data: {
+        access_token: result.access_token,
+        user: toUserDto(result.user),
+      },
       message: 'Login successful',
     };
   }
