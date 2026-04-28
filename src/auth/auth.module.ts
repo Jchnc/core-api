@@ -16,11 +16,13 @@ import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { MailModule } from '@/mail';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { TwoFactorService } from './two-factor.service';
+import { AuthRepository } from './auth.repository';
 
 @Module({
   imports: [PassportModule, JwtModule.register({}), MailModule],
   controllers: [AuthController],
   providers: [
+    AuthRepository,
     HashingService,
     AuthService,
     TokenService,
