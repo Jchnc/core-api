@@ -105,4 +105,28 @@ export class AuthRepository {
       data: { usedAt: new Date() },
     });
   }
+
+  async createOAuthCode(userId: string, code: string, expiresAt: Date) {
+    return this.prisma.token.create({
+      data: {
+        token: code,
+        type: 'OAUTH_CODE',
+        userId,
+        expiresAt,
+      },
+    });
+  }
+
+  async findAndDeleteOAuthCode(code: string) {
+    const token = await this.prisma.token.findFirst({
+      where: { token: code, type: 'OAUTH_CODE' },
+      select: { id: true, userId: true, expiresAt: true },
+    });
+
+    if (token) {
+      await this.prisma.token.delete({ where: { id: token.id } });
+    }
+
+    return token;
+  }
 }

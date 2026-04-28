@@ -27,6 +27,7 @@ import {
   LoginGenericResponseDto,
   NullResponseDto,
   TokensResponseDto,
+  ExchangeCodeDto,
 } from './dto';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { JwtPayload, JwtRefreshPayload, JwtRefreshPayloadWithUser } from './types/jwt-payload.type';
@@ -210,8 +211,30 @@ export class AuthController {
       return;
     }
 
-    const params = new URLSearchParams({ access_token: result.access_token });
+    const params = new URLSearchParams({ code: result.auth_code });
     res.redirect(`${frontendUrl}/api/auth/oauth/callback?${params.toString()}`);
+  }
+
+  // POST /api/v1/auth/oauth/exchange
+  @Public()
+  @Post('oauth/exchange')
+  @Throttle({ short: { ttl: seconds(60), limit: 10 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Exchange OAuth code for tokens' })
+  @ApiResponse({ status: 200, description: 'Code exchanged for tokens', type: LoginGenericResponseDto })
+  @ApiResponse({ status: 401, description: 'Invalid or expired code' })
+  async exchangeOAuthCode(
+    @Body() dto: ExchangeCodeDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<LoginGenericResponseDto> {
+    const result = await this.authService.exchangeOAuthCode(dto.code, res);
+    
+    return {
+      data: {
+        access_token: result.access_token,
+        user: toUserDto(result.user),
+      },
+    };
   }
 
   // POST /api/v1/auth/2fa/verify

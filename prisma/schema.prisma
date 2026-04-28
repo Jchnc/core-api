@@ -17,6 +17,7 @@ enum TokenType {
   REFRESH
   PASSWORD_RESET
   EMAIL_VERIFICATION
+  OAUTH_CODE
 }
 
 model User {

@@ -19,6 +19,7 @@ import { TokenService } from './services/token.service';
 import { HashingService } from './services/hashing.service';
 import { OAuthUserPayload } from './types/google-profile.type';
 import { JwtPayload, JwtRefreshPayload } from './types/jwt-payload.type';
+import { randomUUID } from 'crypto';
 import type { TwoFactorRequiredResponse } from './types/two-factor.types';
 import { AuthTokens } from './types/auth-tokens.type';
 
@@ -206,7 +207,7 @@ export class AuthService {
     payload: OAuthUserPayload,
     req: Request,
     res: Response,
-  ): Promise<(AuthTokens & { user: AuthUser }) | TwoFactorRequiredResponse> {
+  ): Promise<{ auth_code: string } | TwoFactorRequiredResponse> {
     let user = await this.authRepository.findUserByProviderId(payload.providerId, 'GOOGLE');
 
     if (user) {
@@ -239,6 +240,31 @@ export class AuthService {
       if (!isTrusted) {
         return this.twoFactorService.initiate(user.id, user.email, user.name);
       }
+    }
+
+    const authCode = randomUUID();
+    // Valid for 60 seconds
+    const expiresAt = new Date(Date.now() + 60_000);
+    
+    await this.authRepository.createOAuthCode(user.id, authCode, expiresAt);
+
+    return { auth_code: authCode };
+  }
+
+  async exchangeOAuthCode(
+    code: string,
+    res: Response,
+  ): Promise<AuthTokens & { user: AuthUser }> {
+    const tokenRecord = await this.authRepository.findAndDeleteOAuthCode(code);
+
+    if (!tokenRecord || tokenRecord.expiresAt < new Date()) {
+      throw new UnauthorizedException('Invalid or expired authorization code');
+    }
+
+    const user = await this.authRepository.findUserById(tokenRecord.userId);
+
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('User not found or inactive');
     }
 
     const tokens = await this.tokenService.issueTokenPair(user.id, user.email, user.role, res);
