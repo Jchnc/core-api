@@ -48,11 +48,16 @@ describe('AuthController', () => {
   describe('register', () => {
     it('should register a new user', async () => {
       const dto = { email: 'test@example.com', password: 'password', name: 'Test' };
+      const now = new Date();
       const expectedUser = {
         id: 'user-1',
         email: 'test@example.com',
         name: 'Test',
         role: Role.USER,
+        isActive: true,
+        isEmailVerified: false,
+        createdAt: now,
+        updatedAt: now,
       };
       mockAuthService.register.mockResolvedValue(expectedUser);
 
@@ -66,9 +71,19 @@ describe('AuthController', () => {
   describe('login', () => {
     it('should login a user', async () => {
       const dto = { email: 'test@example.com', password: 'password' };
+      const now = new Date();
       const expectedResult = {
         access_token: 'token',
-        user: { id: 'user-1', email: 'test@example.com', name: 'Test', role: Role.USER },
+        user: { 
+          id: 'user-1', 
+          email: 'test@example.com', 
+          name: 'Test', 
+          role: Role.USER,
+          isActive: true,
+          isEmailVerified: false,
+          createdAt: now,
+          updatedAt: now,
+        },
       };
       mockAuthService.login.mockResolvedValue(expectedResult);
 
@@ -151,11 +166,16 @@ describe('AuthController', () => {
         role: Role.USER,
         tokenId: 'token-1',
       };
+      const now = new Date();
       const expectedUser = {
         id: 'user-1',
         email: 'test@example.com',
         name: 'Test',
         role: Role.USER,
+        isActive: true,
+        isEmailVerified: false,
+        createdAt: now,
+        updatedAt: now,
       };
 
       mockAuthService.getCurrentUser.mockResolvedValue(expectedUser);
