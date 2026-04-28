@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'crypto';
 import { CookieOptions, Response } from 'express';
-import type { StringValue } from 'ms';
+import ms, { type StringValue } from 'ms';
 
 import { Role, TokenType } from '@/generated/prisma/enums';
 import { PrismaService } from '@/prisma';
@@ -82,18 +82,11 @@ export class TokenService {
   }
 
   parseExpiry(expiry: string): Date {
-    const unit = expiry.slice(-1);
-    const value = parseInt(expiry.slice(0, -1), 10);
-
-    const multipliers: Record<string, number> = {
-      s: 1000,
-      m: 60 * 1000,
-      h: 60 * 60 * 1000,
-      d: 24 * 60 * 60 * 1000,
-    };
-
-    const ms = (multipliers[unit] ?? 1000) * value;
-    return new Date(Date.now() + ms);
+    const milliseconds = ms(expiry as StringValue);
+    if (milliseconds === undefined) {
+      throw new Error(`Invalid expiry format: ${expiry}`);
+    }
+    return new Date(Date.now() + milliseconds);
   }
 
   getCookieOptions(): CookieOptions {
