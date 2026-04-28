@@ -9,9 +9,9 @@ import type { GoogleProfile, OAuthUserPayload } from '../types/google-profile.ty
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(configService: ConfigService) {
     super({
-      clientID: configService.getOrThrow<string>('GOOGLE_CLIENT_ID'),
-      clientSecret: configService.getOrThrow<string>('GOOGLE_CLIENT_SECRET'),
-      callbackURL: configService.getOrThrow<string>('GOOGLE_CALLBACK_URL'),
+      clientID: configService.getOrThrow<string>('google.clientId'),
+      clientSecret: configService.getOrThrow<string>('google.clientSecret'),
+      callbackURL: configService.getOrThrow<string>('google.callbackUrl'),
       scope: ['email', 'profile'],
     });
   }

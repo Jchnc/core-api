@@ -10,7 +10,7 @@ import { HealthModule } from '@/health';
 import { AllExceptionsFilter } from '@/common/filters/http-exception.filter';
 import { TransformInterceptor } from '@/common/interceptors/transform.interceptor';
 import { RequestIdMiddleware } from '@/common/middleware/request-id.middleware';
-import { appConfig, jwtConfig, mailConfig, securityConfig, validateEnv } from '@/config';
+import { appConfig, googleConfig, jwtConfig, mailConfig, securityConfig, validateEnv } from '@/config';
 import { PrismaModule } from '@/prisma';
 import { AuthModule } from '@/auth';
 import { UsersModule } from '@/users';
@@ -22,7 +22,7 @@ import { UsersModule } from '@/users';
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnv,
-      load: [appConfig, jwtConfig, mailConfig, securityConfig],
+      load: [appConfig, googleConfig, jwtConfig, mailConfig, securityConfig],
     }),
     ThrottlerModule.forRoot({
       throttlers: [

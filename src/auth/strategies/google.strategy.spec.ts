@@ -14,9 +14,9 @@ describe('GoogleStrategy', () => {
           provide: ConfigService,
           useValue: {
             getOrThrow: jest.fn((key: string) => {
-              if (key === 'GOOGLE_CLIENT_ID') return 'client-id';
-              if (key === 'GOOGLE_CLIENT_SECRET') return 'client-secret';
-              if (key === 'GOOGLE_CALLBACK_URL') return 'callback-url';
+              if (key === 'google.clientId') return 'client-id';
+              if (key === 'google.clientSecret') return 'client-secret';
+              if (key === 'google.callbackUrl') return 'callback-url';
               return null;
             }),
           },
