@@ -9,7 +9,7 @@ export class TokenCleanupService {
   constructor(private readonly prisma: PrismaService) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
-  async cleanup() {
+  async cleanup(): Promise<void> {
     this.logger.log('Starting stale token cleanup...');
     const now = new Date();
 
