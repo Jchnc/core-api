@@ -8,7 +8,7 @@ import { REQUEST_ID_HEADER } from '@/common/middleware/request-id.middleware';
 export class LoggingInterceptor implements NestInterceptor {
   private readonly logger = new Logger(LoggingInterceptor.name);
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const ctx = context.switchToHttp();
 
     const req = ctx.getRequest<Request>();
