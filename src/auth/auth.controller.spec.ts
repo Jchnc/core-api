@@ -74,10 +74,10 @@ describe('AuthController', () => {
       const now = new Date();
       const expectedResult = {
         access_token: 'token',
-        user: { 
-          id: 'user-1', 
-          email: 'test@example.com', 
-          name: 'Test', 
+        user: {
+          id: 'user-1',
+          email: 'test@example.com',
+          name: 'Test',
           role: Role.USER,
           isActive: true,
           isEmailVerified: false,
