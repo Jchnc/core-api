@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma';
 import { Role } from '@/generated/prisma/enums';
-import { Prisma } from '@/generated/prisma/client';
 
 const USER_SELECT = {
   id: true,

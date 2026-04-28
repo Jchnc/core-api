@@ -1,13 +1,12 @@
 import { AuthUser } from '@/common/types/user.types';
 import { UserDto } from '../dto/responses.dto';
-import { Role } from '@/generated/prisma/enums';
 
 export function toUserDto(user: AuthUser): UserDto {
   return {
     id: user.id,
     email: user.email,
     name: user.name,
-    role: user.role as Role,
+    role: user.role,
     isActive: user.isActive ?? true,
     isEmailVerified: user.isEmailVerified ?? false,
     createdAt: user.createdAt ?? new Date(),

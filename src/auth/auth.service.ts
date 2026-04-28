@@ -206,7 +206,6 @@ export class AuthService {
   async loginWithOAuth(
     payload: OAuthUserPayload,
     req: Request,
-    res: Response,
   ): Promise<{ auth_code: string } | TwoFactorRequiredResponse> {
     let user = await this.authRepository.findUserByProviderId(payload.providerId, 'GOOGLE');
 
@@ -217,7 +216,7 @@ export class AuthService {
     } else {
       // Create user and link OAuth provider
       const existingEmail = await this.authRepository.findUserByEmail(payload.email);
-      
+
       if (existingEmail) {
         // Link to existing user by email
         user = existingEmail;
@@ -245,16 +244,13 @@ export class AuthService {
     const authCode = randomUUID();
     // Valid for 60 seconds
     const expiresAt = new Date(Date.now() + 60_000);
-    
+
     await this.authRepository.createOAuthCode(user.id, authCode, expiresAt);
 
     return { auth_code: authCode };
   }
 
-  async exchangeOAuthCode(
-    code: string,
-    res: Response,
-  ): Promise<AuthTokens & { user: AuthUser }> {
+  async exchangeOAuthCode(code: string, res: Response): Promise<AuthTokens & { user: AuthUser }> {
     const tokenRecord = await this.authRepository.findAndDeleteOAuthCode(code);
 
     if (!tokenRecord || tokenRecord.expiresAt < new Date()) {

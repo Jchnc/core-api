@@ -200,7 +200,7 @@ export class AuthController {
     @Req() req: Request,
     @Res() res: Response,
   ): Promise<void> {
-    const result = await this.authService.loginWithOAuth(oauthPayload, req, res);
+    const result = await this.authService.loginWithOAuth(oauthPayload, req);
     const frontendUrl = this.authService.getFrontendUrl();
 
     if ('requires_2fa' in result) {
@@ -221,14 +221,18 @@ export class AuthController {
   @Throttle({ short: { ttl: seconds(60), limit: 10 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Exchange OAuth code for tokens' })
-  @ApiResponse({ status: 200, description: 'Code exchanged for tokens', type: LoginGenericResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Code exchanged for tokens',
+    type: LoginGenericResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Invalid or expired code' })
   async exchangeOAuthCode(
     @Body() dto: ExchangeCodeDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<LoginGenericResponseDto> {
     const result = await this.authService.exchangeOAuthCode(dto.code, res);
-    
+
     return {
       data: {
         access_token: result.access_token,
