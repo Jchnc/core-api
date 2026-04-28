@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'crypto';
-import { Response } from 'express';
+import { CookieOptions, Response } from 'express';
 import type { StringValue } from 'ms';
 
 import { Role, TokenType } from '@/generated/prisma/enums';
@@ -69,22 +69,18 @@ export class TokenService {
   }
 
   setRefreshCookie(res: Response, token: string): void {
-    const isProd = this.configService.get<string>('app.nodeEnv') === 'production';
     const expiresIn = this.configService.get<string>('jwt.refreshExpiresIn', '30d');
     const maxAge = this.parseExpiry(expiresIn).getTime() - Date.now();
 
     res.cookie(REFRESH_COOKIE_NAME, token, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: 'lax',
-      path: '/',
+      ...this.getCookieOptions(),
       maxAge,
     });
   }
 
   clearRefreshCookie(res: Response): void {
     res.clearCookie(REFRESH_COOKIE_NAME, {
-      path: '/',
+      ...this.getCookieOptions(),
     });
   }
 
@@ -101,5 +97,16 @@ export class TokenService {
 
     const ms = (multipliers[unit] ?? 1000) * value;
     return new Date(Date.now() + ms);
+  }
+
+  getCookieOptions(): CookieOptions {
+    const isProd = this.configService.get<string>('app.nodeEnv') === 'production';
+
+    return {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'lax',
+      path: '/',
+    };
   }
 }
