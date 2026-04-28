@@ -158,6 +158,21 @@ export class TwoFactorService {
     const os = ua.getOS().name ?? 'Unknown OS';
     const deviceLabel = `${browser} on ${os}`;
 
+    const existing = await this.prisma.trustedDevice.count({ where: { userId } });
+    const MAX_DEVICES = 10;
+    if (existing >= MAX_DEVICES) {
+      // Delete oldest to make room for the new one
+      const oldest = await this.prisma.trustedDevice.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        take: existing - MAX_DEVICES + 1,
+        select: { id: true },
+      });
+      await this.prisma.trustedDevice.deleteMany({
+        where: { id: { in: oldest.map((d) => d.id) } },
+      });
+    }
+
     await this.prisma.trustedDevice.create({
       data: {
         tokenHash,
