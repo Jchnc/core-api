@@ -22,7 +22,7 @@ export class MailService {
         context,
       });
     } catch (error) {
-      this.logger.error(`Failed to send reset email to ${to}`, error);
+      this.logger.error(`Failed to send reset email to ${this.maskEmail(to)}`, error);
       throw error;
     }
   }
@@ -41,7 +41,7 @@ export class MailService {
         context,
       });
     } catch (error) {
-      this.logger.error(`Failed to send welcome email to ${to}`, error);
+      this.logger.error(`Failed to send welcome email to ${this.maskEmail(to)}`, error);
     }
   }
 
@@ -59,8 +59,14 @@ export class MailService {
         context,
       });
     } catch (error) {
-      this.logger.error(`Failed to send 2FA code to ${to}`, error);
+      this.logger.error(`Failed to send 2FA code to ${this.maskEmail(to)}`, error);
       throw error;
     }
+  }
+
+  private maskEmail(email: string): string {
+    const [local, domain] = email.split('@');
+    if (!local || !domain) return '***';
+    return `${local.slice(0, 2)}***@${domain}`;
   }
 }
