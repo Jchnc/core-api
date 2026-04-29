@@ -1,9 +1,14 @@
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
+import { createHash } from 'crypto';
 import { Request } from 'express';
 import { JwtRefreshStrategy } from './jwt-refresh.strategy';
 import { PrismaService } from '@/prisma';
 import { Role } from '@/generated/prisma/enums';
+
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
 
 describe('JwtRefreshStrategy', () => {
   let strategy: JwtRefreshStrategy;
@@ -38,18 +43,21 @@ describe('JwtRefreshStrategy', () => {
   });
 
   describe('validate', () => {
+    const tokenId = 'token-uuid-value';
+    const hashedTokenId = hashToken(tokenId);
+
     const payload = {
       sub: 'user-1',
       email: 'test@example.com',
       role: Role.USER,
-      tokenId: 'token-1',
+      tokenId: hashedTokenId, // JWT now carries the hash, not the raw token
     };
 
     let mockRequest: Partial<Request>;
 
     beforeEach(() => {
       mockRequest = {
-        cookies: { refresh_token: 'raw-refresh-token' },
+        cookies: { refresh_token: tokenId }, // cookie must match JWT tokenId
       };
     });
 
@@ -64,8 +72,9 @@ describe('JwtRefreshStrategy', () => {
 
       const result = await strategy.validate(mockRequest as Request, payload);
 
+      // Lookup now uses SHA-256 hash of tokenId
       expect(mockPrismaService.token.findUnique).toHaveBeenCalledWith({
-        where: { token: payload.tokenId },
+        where: { token: hashedTokenId },
         select: {
           id: true,
           expiresAt: true,
@@ -105,6 +114,14 @@ describe('JwtRefreshStrategy', () => {
       );
     });
 
+    it('should throw Token mismatch if cookie does not match JWT tokenId', async () => {
+      mockRequest.cookies = { refresh_token: 'different-token' };
+
+      await expect(strategy.validate(mockRequest as Request, payload)).rejects.toThrow(
+        'Token mismatch',
+      );
+    });
+
     it('should throw UnauthorizedException if token record is not found', async () => {
       mockPrismaService.token.findUnique.mockResolvedValue(null);
 
@@ -116,7 +133,7 @@ describe('JwtRefreshStrategy', () => {
     it('should throw UnauthorizedException and revoke all tokens if token is reused', async () => {
       const mockToken = {
         id: 'token-1',
-        usedAt: new Date(Date.now() - 35000), // 35 seconds ago, outside the 30s grace period
+        usedAt: new Date(Date.now() - 5000), // any past time — immediate revocation
         expiresAt: new Date(Date.now() + 10000),
         user: { id: 'user-1', isActive: true, passwordHash: null },
       };

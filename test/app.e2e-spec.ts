@@ -44,11 +44,7 @@ describe('AppController (e2e)', () => {
 
     // At least one request should return 429 Too Many Requests
     const hasRateLimited = results.some((res) => res.status === 429);
-    // If throttler is enabled on this route, this should pass.
-    // If not globally enabled, it might just return 401.
-    // We expect it to be handled globally or at least we test it.
-    if (hasRateLimited) {
-      expect(hasRateLimited).toBe(true);
-    }
+
+    expect(hasRateLimited).toBe(true);
   });
 });

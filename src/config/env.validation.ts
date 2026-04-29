@@ -1,5 +1,16 @@
-import { plainToInstance } from 'class-transformer';
-import { IsEnum, IsNumber, IsString, IsUrl, Max, Min, validateSync } from 'class-validator';
+import 'reflect-metadata';
+
+import { plainToInstance, Transform } from 'class-transformer';
+import {
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUrl,
+  Max,
+  Min,
+  validateSync,
+} from 'class-validator';
 
 enum NodeEnvironment {
   Development = 'development',
@@ -11,6 +22,11 @@ class EnvironmentVariables {
   @IsEnum(NodeEnvironment)
   NODE_ENV: NodeEnvironment = NodeEnvironment.Development;
 
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return 3000;
+    return Number(value);
+  })
+  @IsOptional()
   @IsNumber()
   @Min(1)
   @Max(65535)
@@ -31,9 +47,14 @@ class EnvironmentVariables {
   @IsString()
   JWT_REFRESH_EXPIRES_IN!: string;
 
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return 3600;
+    return Number(value);
+  })
+  @IsOptional()
   @IsNumber()
   @Min(60)
-  PASSWORD_RESET_TOKEN_TTL!: number;
+  PASSWORD_RESET_TOKEN_TTL: number = 3600;
 
   @IsString()
   MAIL_HOST!: string;
@@ -92,7 +113,13 @@ export function validateEnv(config: Record<string, unknown>) {
   const errors = validateSync(validated, { skipMissingProperties: false });
 
   if (errors.length > 0) {
-    throw new Error(`Config validation error: ${errors.toString()}`);
+    const fields = errors
+      .map((e) => {
+        const constraints = e.constraints ? Object.keys(e.constraints).join(',') : '';
+        return constraints ? `${e.property}(${constraints})` : e.property;
+      })
+      .join(', ');
+    throw new Error(`Config validation error — invalid fields: ${fields}`);
   }
 
   return validated;

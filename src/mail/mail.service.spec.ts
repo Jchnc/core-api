@@ -52,7 +52,7 @@ describe('MailService', () => {
         to: email,
         subject: 'Reset your password',
         template: 'reset-password',
-        context: context as any,
+        context,
       });
     });
 
@@ -60,7 +60,7 @@ describe('MailService', () => {
       const error = new Error('SMTP Error');
       jest.spyOn(mailerService, 'sendMail').mockRejectedValue(error);
 
-      await expect(service.sendPasswordReset(email, context as any)).rejects.toThrow(error);
+      await expect(service.sendPasswordReset(email, context)).rejects.toThrow(error);
       expect(Logger.prototype.error).toHaveBeenCalled();
     });
   });
@@ -82,11 +82,11 @@ describe('MailService', () => {
       });
     });
 
-    it('should catch error and log if sending fails but not throw', async () => {
+    it('should log and rethrow if sending fails', async () => {
       const error = new Error('SMTP Error');
-      jest.spyOn(mailerService, 'sendMail').mockRejectedValue(error);
+      jest.spyOn(mailerService, 'sendMail').mockRejectedValueOnce(error);
 
-      await service.sendWelcome(email, context);
+      await expect(service.sendWelcome(email, context)).rejects.toThrow('SMTP Error');
 
       expect(Logger.prototype.error).toHaveBeenCalled();
     });

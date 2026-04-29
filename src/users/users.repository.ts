@@ -16,6 +16,40 @@ const USER_SELECT = {
   updatedAt: true,
 } satisfies Prisma.UserSelect;
 
+function encodeCursor(id: string, createdAt: Date): string {
+  return Buffer.from(JSON.stringify({ id, createdAt: createdAt.toISOString() })).toString(
+    'base64url',
+  );
+}
+
+interface CursorPayload {
+  id: string;
+  createdAt: string;
+}
+
+function isCursorPayload(value: unknown): value is CursorPayload {
+  return (
+    typeof value === 'object'
+    && value !== null
+    && 'id' in value
+    && 'createdAt' in value
+    && typeof (value as Record<string, unknown>).id === 'string'
+    && typeof (value as Record<string, unknown>).createdAt === 'string'
+  );
+}
+
+function decodeCursor(cursor: string): { id: string; createdAt: Date } | null {
+  try {
+    const parsed: unknown = JSON.parse(Buffer.from(cursor, 'base64url').toString());
+    if (isCursorPayload(parsed)) {
+      return { id: parsed.id, createdAt: new Date(parsed.createdAt) };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 @Injectable()
 export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -23,7 +57,29 @@ export class UsersRepository {
   async findAll(query: UsersQueryDto): Promise<PaginatedUsers> {
     const { limit, cursor, search } = query;
 
-    const where: Prisma.UserWhereInput = {
+    // Decode self-contained cursor — no extra DB query needed
+    const cursorData = cursor ? decodeCursor(cursor) : null;
+
+    const conditions: Prisma.UserWhereInput[] = [{ deletedAt: null }];
+
+    if (search) {
+      conditions.push({
+        OR: [{ name: { contains: search } }, { email: { contains: search } }],
+      });
+    }
+
+    if (cursorData) {
+      conditions.push({
+        OR: [
+          { createdAt: { lt: cursorData.createdAt } },
+          { createdAt: cursorData.createdAt, id: { lt: cursorData.id } },
+        ],
+      });
+    }
+
+    const where: Prisma.UserWhereInput = { AND: conditions };
+
+    const countWhere: Prisma.UserWhereInput = {
       deletedAt: null,
       ...(search && {
         OR: [{ name: { contains: search } }, { email: { contains: search } }],
@@ -35,10 +91,9 @@ export class UsersRepository {
         where,
         select: USER_SELECT,
         take: limit + 1,
-        ...(cursor && { cursor: { id: cursor }, skip: 1 }),
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       }),
-      this.prisma.user.count({ where }),
+      this.prisma.user.count({ where: countWhere }),
     ]);
 
     const hasNextPage = items.length > limit;
@@ -46,7 +101,7 @@ export class UsersRepository {
 
     return {
       items: page,
-      nextCursor: hasNextPage ? (page[page.length - 1]?.id ?? null) : null,
+      nextCursor: hasNextPage ? encodeCursor(page.at(-1)!.id, page.at(-1)!.createdAt) : null,
       total,
     };
   }

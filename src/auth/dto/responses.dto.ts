@@ -1,23 +1,23 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Role } from '@/generated/prisma/client';
+import { Role } from '@/generated/prisma/enums';
 
 export class UserDto {
   @ApiProperty() id!: string;
   @ApiProperty() email!: string;
   @ApiProperty() name!: string;
   @ApiProperty({ enum: Role }) role!: Role;
-  @ApiProperty() isActive!: boolean;
-  @ApiProperty() isEmailVerified!: boolean;
-  @ApiProperty() createdAt!: Date;
-  @ApiProperty() updatedAt!: Date;
+  @ApiProperty() isActive?: boolean;
+  @ApiProperty() isEmailVerified?: boolean;
+  @ApiProperty() createdAt?: Date;
+  @ApiProperty() updatedAt?: Date;
 }
 
 export class AuthTokensDto {
-  @ApiProperty() access_token!: string;
+  @ApiProperty() access_token?: string;
 }
 
 export class LoginResponseDto extends AuthTokensDto {
-  @ApiProperty({ type: UserDto }) user!: UserDto;
+  @ApiProperty({ type: UserDto }) user?: UserDto;
 
   @ApiPropertyOptional({ description: 'Included if 2FA is required' })
   requires_2fa?: boolean;

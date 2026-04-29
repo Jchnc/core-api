@@ -2,7 +2,6 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { JwtPayload } from '@/auth/types/jwt-payload.type';
-import { Prisma } from '@/generated/prisma/client';
 import { Role } from '@/generated/prisma/client';
 import { buildUser } from '@test/factories/user.factory';
 import { UsersRepository } from './users.repository';
@@ -107,6 +106,8 @@ describe('UsersService', () => {
 
     it('throws ForbiddenException when USER updates another user', async () => {
       const requester = buildRequester({ sub: 'requester-id', role: Role.USER });
+      // Mock user existence so the check passes before the auth check
+      repository.findById.mockResolvedValue(buildUser({ id: 'other-id' }));
 
       await expect(service.update('other-id', { name: 'Hacker' }, requester)).rejects.toThrow(
         ForbiddenException,
@@ -126,12 +127,7 @@ describe('UsersService', () => {
     });
 
     it('throws NotFoundException when user does not exist', async () => {
-      repository.update.mockRejectedValue(
-        new Prisma.PrismaClientKnownRequestError('Not found', {
-          code: 'P2025',
-          clientVersion: '7.8.0',
-        }),
-      );
+      repository.findById.mockResolvedValue(null);
 
       await expect(service.updateRole('ghost-id', { role: Role.ADMIN })).rejects.toThrow(
         NotFoundException,
@@ -151,12 +147,7 @@ describe('UsersService', () => {
     });
 
     it('throws NotFoundException for non-existent user', async () => {
-      repository.softDelete.mockRejectedValue(
-        new Prisma.PrismaClientKnownRequestError('Not found', {
-          code: 'P2025',
-          clientVersion: '7.8.0',
-        }),
-      );
+      repository.findById.mockResolvedValue(null);
 
       await expect(service.remove('ghost-id')).rejects.toThrow(NotFoundException);
     });

@@ -19,6 +19,7 @@ export async function buildTestApp(): Promise<INestApplication> {
     .useValue({
       sendWelcome: jest.fn().mockResolvedValue(undefined),
       sendPasswordReset: jest.fn().mockResolvedValue(undefined),
+      sendTwoFactorCode: jest.fn().mockResolvedValue(undefined),
     })
     .overrideProvider(ThrottlerGuard)
     .useValue({ canActivate: () => true })

@@ -132,12 +132,12 @@ export class TwoFactorService {
       select: { tokenHash: true },
     });
 
-    for (const device of devices) {
-      const match = await this.hashingService.verify(device.tokenHash, rawToken);
-      if (match) return true;
-    }
+    if (devices.length === 0) return false;
 
-    return false;
+    const results = await Promise.all(
+      devices.map((d) => this.hashingService.verify(d.tokenHash, rawToken)),
+    );
+    return results.some(Boolean);
   }
 
   /**

@@ -4,6 +4,13 @@ import { UsersRepository } from './users.repository';
 import { PrismaService } from '../prisma';
 import { buildPrismaMock, PrismaMock } from '@test/mocks/prisma.mock';
 import { buildUser } from '@test/factories/user.factory';
+import { UserResponse } from './types/user-response.type';
+
+function encodeTestCursor(user: UserResponse): string {
+  return Buffer.from(
+    JSON.stringify({ id: user.id, createdAt: user.createdAt.toISOString() }),
+  ).toString('base64url');
+}
 
 describe('UsersRepository', () => {
   let repository: UsersRepository;
@@ -32,7 +39,9 @@ describe('UsersRepository', () => {
       const result = await repository.findAll({ limit: 20 });
 
       expect(result.items).toHaveLength(20);
-      expect(result.nextCursor).toBe('uuid-19');
+      // nextCursor encodes the last item of the page (users[19], 0-indexed)
+      const lastPageUser = users[19];
+      expect(result.nextCursor).toBe(encodeTestCursor(lastPageUser));
       expect(result.total).toBe(50);
     });
 

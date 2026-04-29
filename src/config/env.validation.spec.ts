@@ -34,14 +34,14 @@ describe('Environment Validation', () => {
     const invalidConfig: Record<string, string> = { ...validConfig };
     delete invalidConfig.DATABASE_URL;
 
-    expect(() => validateEnv(invalidConfig)).toThrow('Config validation error:');
+    expect(() => validateEnv(invalidConfig)).toThrow('Config validation error —');
     expect(() => validateEnv(invalidConfig)).toThrow('DATABASE_URL');
   });
 
   it('should throw error when a number field is out of bounds', () => {
     const invalidConfig = { ...validConfig, PORT: '99999' };
 
-    expect(() => validateEnv(invalidConfig)).toThrow('Config validation error:');
+    expect(() => validateEnv(invalidConfig)).toThrow('Config validation error —');
     expect(() => validateEnv(invalidConfig)).toThrow('PORT');
     expect(() => validateEnv(invalidConfig)).toThrow('max');
   });
@@ -49,14 +49,14 @@ describe('Environment Validation', () => {
   it('should throw error when frontend URL is invalid', () => {
     const invalidConfig = { ...validConfig, FRONTEND_URL: 'invalid::::url' };
 
-    expect(() => validateEnv(invalidConfig)).toThrow('Config validation error:');
+    expect(() => validateEnv(invalidConfig)).toThrow('Config validation error —');
     expect(() => validateEnv(invalidConfig)).toThrow('FRONTEND_URL');
   });
 
   it('should throw error when environment is invalid enum', () => {
     const invalidConfig = { ...validConfig, NODE_ENV: 'invalid-env' };
 
-    expect(() => validateEnv(invalidConfig)).toThrow('Config validation error:');
+    expect(() => validateEnv(invalidConfig)).toThrow('Config validation error —');
     expect(() => validateEnv(invalidConfig)).toThrow('NODE_ENV');
     expect(() => validateEnv(invalidConfig)).toThrow('isEnum');
   });

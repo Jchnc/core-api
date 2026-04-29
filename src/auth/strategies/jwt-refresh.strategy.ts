@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
+import { createHash, timingSafeEqual } from 'crypto';
 import { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '@/prisma';
@@ -29,6 +30,22 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
       throw new UnauthorizedException('Refresh token missing');
     }
 
+    if (!payload.tokenId) {
+      throw new UnauthorizedException('Invalid token payload');
+    }
+
+    // Constant-time hash comparison of raw cookie vs JWT tokenId
+    const hashed = createHash('sha256').update(rawToken).digest();
+    const expected = Buffer.from(payload.tokenId, 'hex');
+    if (
+      hashed.length !== expected.length
+      || expected.length !== 32
+      || !timingSafeEqual(hashed, expected)
+    ) {
+      throw new UnauthorizedException('Token mismatch');
+    }
+
+    // payload.tokenId is already a SHA-256 hash — use it directly for DB lookup
     const token = await this.prisma.token.findUnique({
       where: { token: payload.tokenId },
       select: {
@@ -57,16 +74,10 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     }
 
     if (token.usedAt !== null) {
-      const gracePeriodMs = 30 * 1000; // 30 seconds
-      const isWithinGracePeriod = Date.now() - token.usedAt.getTime() < gracePeriodMs;
-
-      if (!isWithinGracePeriod) {
-        // Token reuse detected — possible theft; revoke all tokens for this user
-        await this.prisma.token.deleteMany({
-          where: { userId: payload.sub },
-        });
-        throw new UnauthorizedException('Refresh token reuse detected. All sessions revoked.');
-      }
+      await this.prisma.token.deleteMany({
+        where: { userId: payload.sub },
+      });
+      throw new UnauthorizedException('Refresh token reuse detected. All sessions revoked.');
     }
 
     if (token.expiresAt < new Date()) {

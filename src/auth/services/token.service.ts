@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { CookieOptions, Response } from 'express';
 import ms, { type StringValue } from 'ms';
 
@@ -11,6 +11,10 @@ import { JwtPayload, JwtRefreshPayload } from '../types/jwt-payload.type';
 import { AuthTokens } from '../types/auth-tokens.type';
 
 const REFRESH_COOKIE_NAME = 'refresh_token';
+
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
 
 @Injectable()
 export class TokenService {
@@ -40,35 +44,37 @@ export class TokenService {
     ) as StringValue;
 
     const expiresAt = this.parseExpiry(refreshExpiresIn);
+    const cookieMaxAge = ms(refreshExpiresIn);
+    if (cookieMaxAge === undefined) {
+      throw new Error(`Invalid refresh expiry duration: ${refreshExpiresIn}`);
+    }
 
-    // Persist the refresh token
+    // Persist SHA-256 hash of the refresh token
+    const hashedTokenId = hashToken(refreshToken);
     await this.prisma.token.create({
       data: {
-        token: refreshToken,
+        token: hashedTokenId,
         type: TokenType.REFRESH,
         userId,
         expiresAt,
       },
     });
 
-    // Create a signed JWT that carries the tokenId for refresh strategy validation
+    // Create a signed JWT that carries the hashed tokenId for refresh strategy validation
     const refreshJwt = this.jwtService.sign(
-      { sub: userId, email, role, tokenId: refreshToken } as JwtRefreshPayload,
+      { sub: userId, email, role, tokenId: hashedTokenId } as JwtRefreshPayload,
       {
         secret: this.configService.getOrThrow<string>('jwt.refreshSecret'),
         expiresIn: refreshExpiresIn,
       },
     );
 
-    this.setRefreshCookie(res, refreshJwt);
+    this.setRefreshCookie(res, refreshJwt, cookieMaxAge);
 
     return { access_token: accessToken };
   }
 
-  setRefreshCookie(res: Response, token: string): void {
-    const expiresIn = this.configService.get<string>('jwt.refreshExpiresIn', '30d');
-    const maxAge = this.parseExpiry(expiresIn).getTime() - Date.now();
-
+  setRefreshCookie(res: Response, token: string, maxAge: number): void {
     res.cookie(REFRESH_COOKIE_NAME, token, {
       ...this.getCookieOptions(),
       maxAge,
