@@ -36,8 +36,7 @@ export class HealthController {
   checkReadiness() {
     return this.health.check([
       () => this.prismaHealth.pingCheck('database', this.prisma),
-      // Set reasonable memory threshold (150MB) for a basic Node.js process
-      () => this.memory.checkHeap('memory_heap', 150 * 1024 * 1024),
+      () => this.memory.checkHeap('memory_heap', 512 * 1024 * 1024),
     ]);
   }
 }

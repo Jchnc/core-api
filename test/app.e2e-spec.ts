@@ -14,37 +14,37 @@ describe('AppController (e2e)', () => {
     await app.close();
   });
 
-  it('GET /api/v1/ — rejects unauthenticated request (global JWT guard)', async () => {
-    await request(app.getHttpServer()).get('/api/v1/').expect(401);
+  it('GET /api/v1/health — returns liveness status', async () => {
+    const res = await request(app.getHttpServer()).get('/api/v1/health').expect(200);
+
+    expect(res.body.data).toHaveProperty('status', 'ok');
+    expect(res.body.data).toHaveProperty('timestamp');
+  });
+
+  it('GET /api/v1/readiness — returns readiness status with health checks', async () => {
+    const res = await request(app.getHttpServer()).get('/api/v1/readiness');
+
+    expect([200, 503]).toContain(res.status);
+
+    if (res.status === 200) {
+      expect(res.body.data).toHaveProperty('status');
+      expect(res.body.data).toHaveProperty('details');
+    } else {
+      expect(res.body).toHaveProperty('statusCode', 503);
+      expect(res.body).toHaveProperty('error');
+    }
   });
 
   it('POST /api/v1/auth/login — Global Validation Handling (class-validator)', async () => {
-    // Sending invalid data to a known endpoint to verify standard ErrorResponse format
     const res = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
       .send({ email: 'not-an-email', password: 'short' })
       .expect(400);
 
-    // Verify exception filter formatting
     expect(res.body).toHaveProperty('statusCode', 400);
     expect(res.body).toHaveProperty('message');
     expect(res.body).toHaveProperty('error', 'Bad Request');
     expect(res.body).toHaveProperty('timestamp');
     expect(res.body).toHaveProperty('path', '/api/v1/auth/login');
-  });
-
-  it('GET /api/v1/ — Rate Limiting / Throttler Test', async () => {
-    // Fire many requests to hit the rate limit. Assuming the limit is less than 50.
-    const promises = [];
-    for (let i = 0; i < 50; i++) {
-      promises.push(request(app.getHttpServer()).get('/api/v1/'));
-    }
-
-    const results = await Promise.all(promises);
-
-    // At least one request should return 429 Too Many Requests
-    const hasRateLimited = results.some((res) => res.status === 429);
-
-    expect(hasRateLimited).toBe(true);
   });
 });

@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
-import { createHash, timingSafeEqual } from 'crypto';
+import { createHash } from 'crypto';
 import { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '@/prisma';
@@ -24,30 +24,14 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
   }
 
   async validate(req: Request, payload: JwtRefreshPayload): Promise<JwtRefreshPayloadWithUser> {
-    const rawToken = req.cookies?.['refresh_token'] as string | undefined;
-
-    if (!rawToken) {
-      throw new UnauthorizedException('Refresh token missing');
-    }
-
     if (!payload.tokenId) {
       throw new UnauthorizedException('Invalid token payload');
     }
 
-    // Constant-time hash comparison of raw cookie vs JWT tokenId
-    const hashed = createHash('sha256').update(rawToken).digest();
-    const expected = Buffer.from(payload.tokenId, 'hex');
-    if (
-      hashed.length !== expected.length
-      || expected.length !== 32
-      || !timingSafeEqual(hashed, expected)
-    ) {
-      throw new UnauthorizedException('Token mismatch');
-    }
+    const hashedTokenId = createHash('sha256').update(payload.tokenId).digest('hex');
 
-    // payload.tokenId is already a SHA-256 hash — use it directly for DB lookup
     const token = await this.prisma.token.findUnique({
-      where: { token: payload.tokenId },
+      where: { token: hashedTokenId },
       select: {
         id: true,
         usedAt: true,

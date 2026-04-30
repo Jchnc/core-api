@@ -3,7 +3,7 @@ import { of } from 'rxjs';
 import { TransformInterceptor, ApiResponse } from './transform.interceptor';
 
 describe('TransformInterceptor', () => {
-  let interceptor: TransformInterceptor<any>;
+  let interceptor: TransformInterceptor<unknown>;
 
   beforeEach(() => {
     interceptor = new TransformInterceptor();
@@ -27,7 +27,7 @@ describe('TransformInterceptor', () => {
 
   it('should return the payload directly if it is already an ApiResponse', (done) => {
     const mockExecutionContext = {} as ExecutionContext;
-    const existingResponse: ApiResponse<any> = { data: { id: 1 }, message: 'Success' };
+    const existingResponse: ApiResponse<{ id: number }> = { data: { id: 1 }, message: 'Success' };
     const mockCallHandler = {
       handle: () => of(existingResponse),
     } as CallHandler;
