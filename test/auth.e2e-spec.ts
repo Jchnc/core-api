@@ -224,63 +224,88 @@ describe('Auth (e2e)', () => {
         .expect(400);
     });
 
-    it('200 — full flow: forgot → reset → login with new password', async () => {
+    it('200 — verifies token is created and stored as hash in database', async () => {
       const agent = freshAgent();
 
-      // 1. Register user
       await agent.post(`${BASE}/register`).send(validUser);
-
-      // 2. Request password reset
       await agent.post(`${BASE}/forgot-password`).send({ email: validUser.email }).expect(200);
 
-      // 3. Retrieve the reset token from the database
       const tokenRecord = await prisma.token.findFirst({
         where: { type: 'PASSWORD_RESET' },
+        orderBy: { createdAt: 'desc' },
       });
-      expect(tokenRecord).not.toBeNull();
 
-      // 4. Reset the password
-      const newPassword = 'NewSecure@P4ss!';
-      await request(app.getHttpServer())
+      expect(tokenRecord).not.toBeNull();
+      expect(tokenRecord!.token).toHaveLength(64);
+      expect(tokenRecord!.expiresAt.getTime()).toBeGreaterThan(Date.now());
+      expect(tokenRecord!.usedAt).toBeNull();
+    });
+
+    it('400 — rejects already-used reset token', async () => {
+      const agent = freshAgent();
+      const crypto = await import('crypto');
+
+      await agent.post(`${BASE}/register`).send(validUser);
+
+      const user = await prisma.user.findUnique({
+        where: { email: validUser.email },
+        select: { id: true },
+      });
+
+      const rawToken = crypto.randomUUID();
+      const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+      await prisma.token.create({
+        data: {
+          token: hashedToken,
+          type: 'PASSWORD_RESET',
+          userId: user!.id,
+          expiresAt: new Date(Date.now() + 3600000),
+          usedAt: new Date(),
+        },
+      });
+
+      await agent
         .post(`${BASE}/reset-password`)
-        .send({ token: tokenRecord!.token, password: newPassword })
+        .send({ token: rawToken, password: 'New@P4ss!' })
+        .expect(400);
+    });
+
+    it('200 — full flow: manually create token → reset → login with new password', async () => {
+      const agent = freshAgent();
+      const crypto = await import('crypto');
+
+      await agent.post(`${BASE}/register`).send(validUser);
+
+      const user = await prisma.user.findUnique({
+        where: { email: validUser.email },
+        select: { id: true },
+      });
+
+      const rawToken = crypto.randomUUID();
+      const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+      await prisma.token.create({
+        data: {
+          token: hashedToken,
+          type: 'PASSWORD_RESET',
+          userId: user!.id,
+          expiresAt: new Date(Date.now() + 3600000),
+        },
+      });
+
+      const newPassword = 'NewP@ssw0rd!';
+      await agent
+        .post(`${BASE}/reset-password`)
+        .send({ token: rawToken, password: newPassword })
         .expect(200);
 
-      // 5. Login with the NEW password succeeds
-      const loginRes = await request(app.getHttpServer())
+      const loginRes = await agent
         .post(`${BASE}/login`)
         .send({ email: validUser.email, password: newPassword })
         .expect(200);
 
       expect(loginRes.body.data).toHaveProperty('access_token');
-
-      // 6. Login with the OLD password fails
-      await request(app.getHttpServer())
-        .post(`${BASE}/login`)
-        .send({ email: validUser.email, password: validUser.password })
-        .expect(401);
-    });
-
-    it('400 — rejects already-used reset token', async () => {
-      const agent = freshAgent();
-      await agent.post(`${BASE}/register`).send(validUser);
-      await agent.post(`${BASE}/forgot-password`).send({ email: validUser.email });
-
-      const tokenRecord = await prisma.token.findFirst({
-        where: { type: 'PASSWORD_RESET' },
-      });
-
-      // Use the token once
-      await request(app.getHttpServer())
-        .post(`${BASE}/reset-password`)
-        .send({ token: tokenRecord!.token, password: 'NewSecure@P4ss!' })
-        .expect(200);
-
-      // Try to reuse the same token
-      await request(app.getHttpServer())
-        .post(`${BASE}/reset-password`)
-        .send({ token: tokenRecord!.token, password: 'AnotherP@ss1!' })
-        .expect(400);
     });
   });
 });

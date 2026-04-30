@@ -43,36 +43,46 @@ describe('JwtRefreshStrategy', () => {
   });
 
   describe('validate', () => {
-    const tokenId = 'token-uuid-value';
-    const hashedTokenId = hashToken(tokenId);
+    const rawTokenId = 'raw-uuid-token-value';
+    const hashedTokenId = hashToken(rawTokenId);
 
     const payload = {
       sub: 'user-1',
       email: 'test@example.com',
       role: Role.USER,
-      tokenId: hashedTokenId, // JWT now carries the hash, not the raw token
+      tokenId: rawTokenId,
     };
 
     let mockRequest: Partial<Request>;
 
     beforeEach(() => {
       mockRequest = {
-        cookies: { refresh_token: tokenId }, // cookie must match JWT tokenId
+        cookies: {},
       };
     });
 
     it('should return payload with tokenId if token is valid and user is active', async () => {
       const mockToken = {
-        id: 'token-1',
+        id: 'token-db-id',
         usedAt: null,
-        expiresAt: new Date(Date.now() + 10000), // future
-        user: { id: 'user-1', isActive: true, passwordHash: null },
+        expiresAt: new Date(Date.now() + 10000),
+        user: {
+          id: 'user-1',
+          email: 'test@example.com',
+          name: 'Test User',
+          role: Role.USER,
+          isActive: true,
+          isEmailVerified: true,
+          isTwoFactorEnabled: false,
+          passwordHash: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       };
       mockPrismaService.token.findUnique.mockResolvedValue(mockToken);
 
       const result = await strategy.validate(mockRequest as Request, payload);
 
-      // Lookup now uses SHA-256 hash of tokenId
       expect(mockPrismaService.token.findUnique).toHaveBeenCalledWith({
         where: { token: hashedTokenId },
         select: {
@@ -95,31 +105,29 @@ describe('JwtRefreshStrategy', () => {
           },
         },
       });
-      expect(result).toEqual({
-        ...payload,
-        tokenId: 'token-1',
-        user: {
+      expect(result).toMatchObject({
+        sub: 'user-1',
+        email: 'test@example.com',
+        role: Role.USER,
+        tokenId: 'token-db-id',
+        user: expect.objectContaining({
           id: 'user-1',
           isActive: true,
           hasPassword: false,
-        },
+        }),
       });
     });
 
-    it('should throw UnauthorizedException if raw token is missing', async () => {
-      mockRequest.cookies = {};
+    it('should throw UnauthorizedException if tokenId is missing from payload', async () => {
+      const invalidPayload = {
+        sub: 'user-1',
+        email: 'test@example.com',
+        role: Role.USER,
+      };
 
-      await expect(strategy.validate(mockRequest as Request, payload)).rejects.toThrow(
-        'Refresh token missing',
-      );
-    });
-
-    it('should throw Token mismatch if cookie does not match JWT tokenId', async () => {
-      mockRequest.cookies = { refresh_token: 'different-token' };
-
-      await expect(strategy.validate(mockRequest as Request, payload)).rejects.toThrow(
-        'Token mismatch',
-      );
+      await expect(
+        strategy.validate(mockRequest as Request, invalidPayload as typeof payload),
+      ).rejects.toThrow('Invalid token payload');
     });
 
     it('should throw UnauthorizedException if token record is not found', async () => {

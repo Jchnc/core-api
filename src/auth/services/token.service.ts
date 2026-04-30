@@ -37,7 +37,7 @@ export class TokenService {
       expiresIn: this.configService.get<string>('jwt.accessExpiresIn', '15m') as StringValue,
     });
 
-    const refreshToken = randomUUID();
+    const refreshTokenId = randomUUID();
     const refreshExpiresIn = this.configService.get<string>(
       'jwt.refreshExpiresIn',
       '30d',
@@ -49,8 +49,7 @@ export class TokenService {
       throw new Error(`Invalid refresh expiry duration: ${refreshExpiresIn}`);
     }
 
-    // Persist SHA-256 hash of the refresh token
-    const hashedTokenId = hashToken(refreshToken);
+    const hashedTokenId = hashToken(refreshTokenId);
     await this.prisma.token.create({
       data: {
         token: hashedTokenId,
@@ -60,9 +59,8 @@ export class TokenService {
       },
     });
 
-    // Create a signed JWT that carries the hashed tokenId for refresh strategy validation
     const refreshJwt = this.jwtService.sign(
-      { sub: userId, email, role, tokenId: hashedTokenId } as JwtRefreshPayload,
+      { sub: userId, email, role, tokenId: refreshTokenId } as JwtRefreshPayload,
       {
         secret: this.configService.getOrThrow<string>('jwt.refreshSecret'),
         expiresIn: refreshExpiresIn,
